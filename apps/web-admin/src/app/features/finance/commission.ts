@@ -42,14 +42,14 @@ import { ApiService } from '../../core/api/api.service';
         <div class="vexa-card block">
           <h3 class="vexa-overline">Modificación masiva de tarifas</h3>
           <div class="bulk">
-            <mat-form-field><mat-label>Tasa objetivo (%)</mat-label><input matInput value="13.5" /></mat-form-field>
+            <mat-form-field><mat-label>Tasa objetivo (%)</mat-label><input matInput [value]="d.baseRate" /></mat-form-field>
             <button mat-flat-button>Aplicar cambios</button>
           </div>
           <p class="muted">Aplica la tasa seleccionada a todas las empresas elegibles.</p>
         </div>
         <div class="vexa-card block">
           <h3 class="vexa-overline">Desglose de comisiones</h3>
-          <div class="donut">{{ totalPct() }}%</div>
+          <div class="donut" [style.background]="donutBackground()">{{ totalPct() }}%</div>
           <ul class="kv">
             @for (b of d.breakdown; track b.label) {
               <li><span>{{ b.label }}</span><strong>{{ b.value | number:'1.0-0' }}</strong></li>
@@ -90,6 +90,11 @@ export class Commission {
     const b = this.data()?.breakdown ?? [];
     const total = b.reduce((acc, x) => acc + x.value, 0);
     return total > 0 ? Math.round((b[0]?.value ?? 0) / total * 100) : 0;
+  };
+
+  protected readonly donutBackground = () => {
+    const pct = this.totalPct();
+    return `conic-gradient(var(--vexa-primary-600) 0 ${pct}%, var(--vexa-gray-100) ${pct}% 100%)`;
   };
 
   constructor() {

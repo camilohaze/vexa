@@ -52,6 +52,14 @@ final earningsSummaryProvider = FutureProvider<EarningsSummary>((ref) async {
     final data =
         await ref.watch(courierRepositoryProvider).fetchEarnings();
     final week = (data['week'] as num?)?.toDouble() ?? 0;
+    final rawBars = (data['dailyBars'] as List?)?.whereType<num>().toList();
+    final dailyBars = rawBars?.map((n) => n.toDouble()).toList() ??
+        const [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0];
+    final rawBreakdown = (data['breakdown'] as List?)?.cast<List>() ?? [];
+    final breakdown = rawBreakdown
+        .whereType<List<dynamic>>()
+        .map((b) => (b[0] as String? ?? '', (b[1] as num?)?.toDouble() ?? 0, (b[2] as num?)?.toInt() ?? 0))
+        .toList();
     return EarningsSummary(
       total: week,
       tips: 0,
@@ -60,8 +68,8 @@ final earningsSummaryProvider = FutureProvider<EarningsSummary>((ref) async {
       pending: 0,
       today: (data['today'] as num?)?.toDouble() ?? 0,
       completed: (data['completed'] as num?)?.toInt() ?? 0,
-      dailyBars: const [0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1],
-      breakdown: const [],
+      dailyBars: dailyBars,
+      breakdown: breakdown,
     );
   } catch (_) {
     return const EarningsSummary(

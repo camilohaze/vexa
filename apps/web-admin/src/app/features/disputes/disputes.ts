@@ -1,5 +1,5 @@
 import { DatePipe } from '@angular/common';
-import { ChangeDetectionStrategy, Component, inject, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
 import { MatButtonModule } from '@angular/material/button';
 import { MatButtonToggleModule } from '@angular/material/button-toggle';
 import { MatIconModule } from '@angular/material/icon';
@@ -24,10 +24,10 @@ interface Dispute {
     <vexa-page-header title="Gestión de disputas" />
 
     <mat-button-toggle-group [value]="tab()" (change)="tab.set($event.value)">
-      <mat-button-toggle value="all">Todas (12)</mat-button-toggle>
-      <mat-button-toggle value="review">En revisión (5)</mat-button-toggle>
-      <mat-button-toggle value="resolved">Resueltas (42)</mat-button-toggle>
-      <mat-button-toggle value="escalated">Escaladas (2)</mat-button-toggle>
+      <mat-button-toggle value="all">Todas ({{ counts().all }})</mat-button-toggle>
+      <mat-button-toggle value="review">En revisión ({{ counts().review }})</mat-button-toggle>
+      <mat-button-toggle value="resolved">Resueltas ({{ counts().resolved }})</mat-button-toggle>
+      <mat-button-toggle value="escalated">Escaladas ({{ counts().escalated }})</mat-button-toggle>
     </mat-button-toggle-group>
 
     <div class="grid">
@@ -107,6 +107,16 @@ export class Disputes {
     this.disputes().find((d) => d.id === this.current()) ?? null;
 
   protected readonly disputes = signal<Dispute[]>([]);
+
+  protected readonly counts = computed(() => {
+    const d = this.disputes();
+    return {
+      all: d.length,
+      review: d.filter((x) => x.status === 'OPEN' || x.status === 'IN_REVIEW').length,
+      resolved: d.filter((x) => x.status === 'RESOLVED').length,
+      escalated: d.filter((x) => x.status === 'ESCALATED').length,
+    };
+  });
 
   constructor() {
     this.api.get<Dispute[]>('admin/disputes').subscribe((d) => {

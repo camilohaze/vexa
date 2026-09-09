@@ -42,10 +42,12 @@ interface AdminStats {
           <span class="kpi__label">{{ kpi.label }}</span>
           <div class="kpi__row">
             <strong class="kpi__value">{{ kpi.value }}</strong>
-            <span class="trend" [class.trend--down]="kpi.down">
-              <mat-icon>{{ kpi.down ? 'trending_down' : 'trending_up' }}</mat-icon>
-              {{ kpi.trend }}
-            </span>
+            @if (kpi.trend) {
+              <span class="trend" [class.trend--down]="kpi.down">
+                <mat-icon>{{ kpi.down ? 'trending_down' : 'trending_up' }}</mat-icon>
+                {{ kpi.trend }}
+              </span>
+            }
           </div>
         </div>
       }
@@ -124,13 +126,24 @@ export class Dashboard {
   protected readonly revenue = () => this.stats().revenueSeries ?? [0, 0, 0, 0, 0, 0, 0];
   protected readonly health = () => this.stats().health ?? [];
 
+  private pctChange(values: number[]) {
+    if (values.length < 2) return null;
+    const prev = values[values.length - 2] || 0;
+    const last = values[values.length - 1] || 0;
+    if (prev === 0) return null;
+    const raw = ((last - prev) / prev) * 100;
+    return (Math.abs(raw) < 0.1 ? 0 : Math.round(raw * 10) / 10);
+  }
+
   protected readonly kpis = computed(() => {
     const s = this.stats();
+    const deliveryChange = this.pctChange(s.volume ?? []);
+    const revenueChange = this.pctChange(s.revenueSeries ?? []);
     return [
-      { label: 'Usuarios de la plataforma', value: (s.users + s.companies + s.couriers).toLocaleString('es-CO'), trend: '+12.4%', down: false },
-      { label: 'Entregas activas', value: s.activeDeliveries.toLocaleString('es-CO'), trend: '+8.2%', down: false },
-      { label: 'Ingresos hoy', value: `$${(s.revenue || 0).toLocaleString('es-CO')}`, trend: '+18.5%', down: false },
-      { label: 'Disputas pendientes', value: (s.disputesPending ?? 0).toLocaleString('es-CO'), trend: '-4%', down: true },
+      { label: 'Usuarios de la plataforma', value: (s.users + s.companies + s.couriers).toLocaleString('es-CO'), trend: '', down: false },
+      { label: 'Entregas activas', value: s.activeDeliveries.toLocaleString('es-CO'), trend: deliveryChange != null ? `${deliveryChange > 0 ? '+' : ''}${deliveryChange}%` : '', down: (deliveryChange ?? 0) < 0 },
+      { label: 'Ingresos hoy', value: `$${(s.revenue || 0).toLocaleString('es-CO')}`, trend: revenueChange != null ? `${revenueChange > 0 ? '+' : ''}${revenueChange}%` : '', down: (revenueChange ?? 0) < 0 },
+      { label: 'Disputas pendientes', value: (s.disputesPending ?? 0).toLocaleString('es-CO'), trend: '', down: false },
     ];
   });
 

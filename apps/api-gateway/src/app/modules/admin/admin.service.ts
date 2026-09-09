@@ -138,7 +138,7 @@ export class AdminService {
     ];
   }
 
-  /** Series temporales simuladas del último mes; reemplazar por OpenTelemetry/Grafana. */
+  /** Series temporales agregadas de la base de datos (últimos 7 días). */
   private async timeSeries() {
     const days = 7;
     const now = new Date();

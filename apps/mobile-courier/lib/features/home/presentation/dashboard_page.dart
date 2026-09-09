@@ -23,10 +23,12 @@ class DashboardPage extends ConsumerWidget {
     final status = ref.watch(courierStatusProvider);
     final jobs = ref.watch(offeredJobsProvider);
     final earnings = ref.watch(earningsSummaryProvider);
+    final txs = ref.watch(walletTransactionsProvider);
     final online = status.valueOrNull == CourierStatus.available;
     final theme = Theme.of(context);
     final today = earnings.valueOrNull?.today ?? 0;
     final completed = earnings.valueOrNull?.completed ?? 0;
+    final lastTx = txs.valueOrNull?.firstOrNull;
 
     ref.listen<AsyncValue<dynamic>>(newJobStreamProvider, (prev, next) {
       next.whenData((job) {
@@ -185,11 +187,18 @@ class DashboardPage extends ConsumerWidget {
                   style: theme.textTheme.titleSmall
                       ?.copyWith(fontWeight: FontWeight.w700)),
               const SizedBox(height: 8),
-              const _ActivityItem(
-                icon: Icons.check_circle,
-                title: 'Paquete entregado #VX-489',
-                subtitle: 'Ganaste \$24.50 • hace 20 min',
-              ),
+              if (lastTx != null)
+                _ActivityItem(
+                  icon: Icons.check_circle,
+                  title: lastTx.title,
+                  subtitle: '${lastTx.subtitle} • \$${lastTx.amount.toStringAsFixed(2)}',
+                )
+              else
+                const _ActivityItem(
+                  icon: Icons.info,
+                  title: 'Sin actividad reciente',
+                  subtitle: 'Completa tu primera entrega para ver movimientos',
+                ),
             ],
           ),
         ),
