@@ -31,17 +31,16 @@ import { ApiService } from '../../core/api/api.service';
     <section class="stats">
       <div class="stat vexa-card"><span>Enviadas hoy</span><strong>{{ stats().sentToday | number }}</strong></div>
       <div class="stat vexa-card"><span>Tasa de apertura</span><strong>{{ stats().openRate }}%</strong></div>
-      <div class="stat vexa-card"><span>Clics</span><strong>{{ stats().clickRate ?? 0 }}%</strong></div>
+      <div class="stat vexa-card"><span>Clics</span><strong>{{ stats().clickRate }}%</strong></div>
     </section>
 
     <div class="grid">
       <form class="vexa-card block" [formGroup]="form" (ngSubmit)="send()">
         <h3 class="vexa-overline">Crear notificación push</h3>
         <mat-form-field><mat-label>Título</mat-label>
-          <input matInput formControlName="title" placeholder="Oferta especial: bonus peak courier" /></mat-form-field>
+          <input matInput formControlName="title" /></mat-form-field>
         <mat-form-field><mat-label>Cuerpo del mensaje</mat-label>
-          <textarea matInput rows="3" formControlName="body"
-              placeholder="Gana un extra de $5.00 por entrega entre 4 y 8 PM hoy…"></textarea></mat-form-field>
+          <textarea matInput rows="3" formControlName="body"></textarea></mat-form-field>
         <div class="row">
           <mat-form-field><mat-label>Segmento</mat-label>
             <mat-select formControlName="segment">
@@ -51,7 +50,7 @@ import { ApiService } from '../../core/api/api.service';
             </mat-select>
           </mat-form-field>
           <mat-form-field><mat-label>Programación</mat-label>
-            <input matInput formControlName="when" placeholder="Hoy, 3:30 PM" /></mat-form-field>
+            <input matInput formControlName="when" /></mat-form-field>
         </div>
         <div class="row">
           <button mat-stroked-button type="button">Guardar borrador</button>
