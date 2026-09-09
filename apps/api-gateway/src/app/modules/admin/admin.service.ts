@@ -295,12 +295,13 @@ export class AdminService {
 
   /** Genera un reporte CSV agregado a partir de datos reales. */
   async generateReport() {
-    const [jobStats] = await this.jobs
+    const jobStats = await this.jobs
       .createQueryBuilder('j')
       .select('j.status', 'status')
       .addSelect('COUNT(*)', 'count')
       .groupBy('j.status')
       .getRawMany<{ status: string; count: string }>();
+    const jobMap = new Map(jobStats.map((j) => [j.status, j.count]));
     const companies = await this.companies.count();
     const couriers = await this.couriers.count();
     const payments = await this.payments
@@ -314,7 +315,7 @@ export class AdminService {
       ['Métrica', 'Valor', 'Detalle'],
       ['Empresas activas', companies.toString(), ''],
       ['Repartidores', couriers.toString(), ''],
-      ...Object.values(JobStatus).map((s) => [`Pedidos ${s}`, '0', '']),
+      ...Object.values(JobStatus).map((s) => [`Pedidos ${s}`, jobMap.get(s) ?? '0', '']),
       ...payments.map((p) => [`Pagos ${p.status}`, p.count, `$${Number(p.total).toFixed(2)}`]),
     ];
     const csv = lines.map((l) => l.map((c) => `"${String(c).replace(/"/g, '""')}"`).join(',')).join('\n');
