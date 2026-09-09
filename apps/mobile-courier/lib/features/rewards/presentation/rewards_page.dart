@@ -15,22 +15,12 @@ final rewardsProvider = FutureProvider<Map<String, dynamic>>((ref) async {
 class RewardsPage extends ConsumerWidget {
   const RewardsPage({super.key});
 
-  static const _benefits = [
-    ('Multiplicador de pago +5%', 'Tarifas base mayores en todas las entregas'),
-    ('Asignación prioritaria', 'Acceso a ofertas antes que los niveles estándar'),
-    ('Soporte dedicado', 'Ayuda directa de un agente de logística Vexa'),
-  ];
-
-  static const _earnPoints = [
-    ('Entrega a tiempo', '+50 pts'),
-    ('Ruta en hora pico completada', '+120 pts'),
-    ('POD cargado en menos de 5 min', '+20 pts'),
-  ];
-
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final theme = Theme.of(context);
     final rewards = ref.watch(rewardsProvider);
+    final benefits = (rewards.valueOrNull?['benefits'] as List? ?? []).cast<String>();
+    final earnRules = (rewards.valueOrNull?['earnRules'] as List? ?? []).cast<Map<String, dynamic>>();
     return Scaffold(
       appBar: AppBar(
         leading: const BackButton(),
@@ -65,12 +55,11 @@ class RewardsPage extends ConsumerWidget {
           Text('TUS BENEFICIOS', style: theme.textTheme.labelSmall?.copyWith(
             letterSpacing: 0.8, color: VexaColors.gray500, fontWeight: FontWeight.w600)),
           const SizedBox(height: 8),
-          for (final (title, sub) in _benefits)
+          for (final title in benefits)
             ListTile(
               contentPadding: EdgeInsets.zero,
               leading: const Icon(Icons.check_circle, color: VexaColors.success500, size: 20),
               title: Text(title, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600)),
-              subtitle: Text(sub, style: const TextStyle(fontSize: 12, color: VexaColors.gray500)),
             ),
           const SizedBox(height: 12),
           Text('GANAR PUNTOS', style: theme.textTheme.labelSmall?.copyWith(
@@ -80,10 +69,10 @@ class RewardsPage extends ConsumerWidget {
             margin: EdgeInsets.zero,
             child: Column(
               children: [
-                for (final (action, pts) in _earnPoints)
+                for (final r in earnRules)
                   ListTile(
-                    title: Text(action, style: const TextStyle(fontSize: 14)),
-                    trailing: Text(pts,
+                    title: Text(r['action'] as String? ?? '', style: const TextStyle(fontSize: 14)),
+                    trailing: Text('+${(r['points'] as num?)?.toInt() ?? 0} pts',
                         style: const TextStyle(
                             fontSize: 13, fontWeight: FontWeight.w600,
                             color: VexaColors.primary600)),

@@ -316,12 +316,25 @@ export class CouriersService {
     const delivered = await this.jobs.countBy({ courierId: courier.id, status: JobStatus.DELIVERED });
     const points = delivered * 10;
     const tier = points >= 5000 ? 'ORO' : points >= 2000 ? 'PLATA' : 'BRONCE';
+    const multiplier = tier === 'ORO' ? 5 : tier === 'PLATA' ? 3 : 2;
+    const benefits = [
+      'Multiplicador de pago +$multiplier%',
+      'Asignación prioritaria',
+      'Soporte dedicado',
+    ].map((b) => b.replace('$multiplier', multiplier.toString()));
+    const earnRules = [
+      { action: 'Entrega a tiempo', points: 50 },
+      { action: 'Ruta en hora pico completada', points: 120 },
+      { action: 'POD cargado en menos de 5 min', points: 20 },
+    ];
     return {
       points,
       tier,
       delivered,
       referralCode: `VEXA-${courier.id.slice(0, 6).toUpperCase()}`,
       nextTierAt: tier === 'ORO' ? null : tier === 'PLATA' ? 5000 : 2000,
+      benefits,
+      earnRules,
     };
   }
 
