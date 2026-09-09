@@ -1,0 +1,41 @@
+import { ChangeDetectionStrategy, Component, inject } from '@angular/core';
+import { RouterModule } from '@angular/router';
+import { NavItem, Shell } from '@vexa/ui';
+import { AuthStore } from '../core/auth/auth.store';
+import { RealtimeService } from '../core/realtime/realtime.service';
+
+const NAV: NavItem[] = [
+  { label: 'Panel', icon: 'dashboard', route: '/dashboard' },
+  { label: 'Envíos', icon: 'inventory_2', route: '/jobs' },
+  { label: 'Nuevo pedido', icon: 'add_circle', route: '/jobs/new' },
+  { label: 'Seguimiento', icon: 'explore', route: '/jobs' },
+  { label: 'Billetera', icon: 'account_balance_wallet', route: '/wallet' },
+  { label: 'Facturación', icon: 'receipt_long', route: '/billing' },
+  { label: 'Notificaciones', icon: 'notifications', route: '/notifications' },
+  { label: 'Configuración', icon: 'settings', route: '/settings' },
+];
+
+@Component({
+  selector: 'vexa-company-layout',
+  imports: [RouterModule, Shell],
+  template: `
+    <vexa-shell
+      title="Vexa Empresa"
+      [navItems]="nav"
+      [userName]="auth.user()?.fullName"
+      (logout)="auth.logout()"
+    >
+      <router-outlet />
+    </vexa-shell>
+  `,
+  changeDetection: ChangeDetectionStrategy.OnPush,
+})
+export class Layout {
+  protected readonly nav = NAV;
+  protected readonly auth = inject(AuthStore);
+  private readonly realtime = inject(RealtimeService);
+
+  constructor() {
+    this.realtime.connect();
+  }
+}

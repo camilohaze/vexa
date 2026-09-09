@@ -1,0 +1,23 @@
+export const AUTH_STRATEGIES = {
+  JWT: 'jwt',
+  JWT_REFRESH: 'jwt-refresh',
+  GOOGLE: 'google',
+  FACEBOOK: 'facebook',
+  MICROSOFT: 'microsoft',
+  APPLE: 'apple',
+} as const;
+
+export const IS_PUBLIC_KEY = 'vexa:isPublic';
+export const ROLES_KEY = 'vexa:roles';
+
+export const AUTH_ENV = {
+  JWT_ACCESS_SECRET: 'JWT_ACCESS_SECRET',
+  JWT_ACCESS_TTL: 'JWT_ACCESS_TTL',
+  JWT_REFRESH_SECRET: 'JWT_REFRESH_SECRET',
+  JWT_REFRESH_TTL: 'JWT_REFRESH_TTL',
+  OAUTH_CALLBACK_BASE_URL: 'OAUTH_CALLBACK_BASE_URL',
+  GOOGLE_CLIENT_ID: 'GOOGLE_CLIENT_ID',
+  GOOGLE_CLIENT_SECRET: 'GOOGLE_CLIENT_SECRET',
+  FACEBOOK_APP_ID: 'FACEBOOK_APP_ID',
+  FACEBOOK_APP_SECRET: 'FACEBOOK_APP_SECRET',
+} as const;

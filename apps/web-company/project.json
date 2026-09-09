@@ -1,0 +1,94 @@
+{
+    "name":  "web-company",
+    "$schema":  "../../node_modules/nx/schemas/project-schema.json",
+    "projectType":  "application",
+    "prefix":  "vexa",
+    "sourceRoot":  "apps/web-company/src",
+    "tags":  [
+
+             ],
+    "targets":  {
+                    "build":  {
+                                  "executor":  "@angular/build:application",
+                                  "outputs":  [
+                                                  "{options.outputPath}"
+                                              ],
+                                  "defaultConfiguration":  "production",
+                                  "options":  {
+                                                  "outputPath":  "dist/apps/web-company",
+                                                  "browser":  "apps/web-company/src/main.ts",
+                                                  "tsConfig":  "apps/web-company/tsconfig.app.json",
+                                                  "inlineStyleLanguage":  "scss",
+                                                  "assets":  [
+                                                                 {
+                                                                     "glob":  "**/*",
+                                                                     "input":  "apps/web-company/public"
+                                                                 }
+                                                             ],
+                                                  "styles":  [
+                                                                 "apps/web-company/src/styles.scss",
+                                                                 "node_modules/mapbox-gl/dist/mapbox-gl.css"
+                                                             ]
+                                              },
+                                  "configurations":  {
+                                                         "production":  {
+                                                                            "budgets":  [
+                                                                                            {
+                                                                                                "type":  "initial",
+                                                                                                "maximumWarning": "1mb",
+                                                                                                "maximumError": "2mb"
+                                                                                            },
+                                                                                            {
+                                                                                                "type":  "anyComponentStyle",
+                                                                                                "maximumWarning":  "4kb",
+                                                                                                "maximumError":  "8kb"
+                                                                                            }
+                                                                                        ],
+                                                                            "outputHashing":  "all"
+                                                                        },
+                                                         "development":  {
+                                                                             "optimization":  false,
+                                                                             "extractLicenses":  false,
+                                                                             "sourceMap":  true,
+                                                                             "fileReplacements":  [
+                                                                                                      {
+                                                                                                          "replace":  "apps/web-company/src/environments/environment.ts",
+                                                                                                          "with":  "apps/web-company/src/environments/environment.development.ts"
+                                                                                                      }
+                                                                                                  ]
+                                                                         }
+                                                     }
+                              },
+                    "serve":  {
+                                  "continuous":  true,
+                                  "executor":  "@angular/build:dev-server",
+                                  "defaultConfiguration":  "development",
+                                  "configurations":  {
+                                                         "production":  {
+                                                                            "buildTarget":  "web-company:build:production"
+                                                                        },
+                                                         "development":  {
+                                                                             "buildTarget":  "web-company:build:development"
+                                                                         }
+                                                     }
+                              },
+                    "lint":  {
+                                 "executor":  "@nx/eslint:lint"
+                             },
+                    "test":  {
+                                 "executor":  "@angular/build:unit-test",
+                                 "options":  {
+                                                 "watch":  false
+                                             }
+                             },
+                    "serve-static":  {
+                                         "continuous":  true,
+                                         "executor":  "@nx/web:file-server",
+                                         "options":  {
+                                                         "buildTarget":  "web-company:build",
+                                                         "staticFilePath":  "dist/apps/web-company/browser",
+                                                         "spa":  true
+                                                     }
+                                     }
+                }
+}

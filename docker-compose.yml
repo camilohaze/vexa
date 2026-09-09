@@ -1,0 +1,76 @@
+name: vexa
+
+services:
+  postgres:
+    image: postgis/postgis:17-3.5
+    container_name: vexa-postgres
+    environment:
+      POSTGRES_USER: vexa
+      POSTGRES_PASSWORD: vexa
+      POSTGRES_DB: vexa
+    ports:
+      - '5432:5432'
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      - ./tools/db/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U vexa -d vexa']
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  redis:
+    image: redis:7-alpine
+    container_name: vexa-redis
+    command: ['redis-server', '--save', '', '--appendonly', 'no']
+    ports:
+      - '6379:6379'
+    healthcheck:
+      test: ['CMD', 'redis-cli', 'ping']
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  # Observabilidad local (OpenTelemetry Collector -> Jaeger + Prometheus -> Grafana)
+  otel-collector:
+    image: otel/opentelemetry-collector-contrib:0.123.0
+    container_name: vexa-otel
+    command: ['--config=/etc/otelcol-config.yaml']
+    volumes:
+      - ./tools/otel/otelcol-config.yaml:/etc/otelcol-config.yaml:ro
+    ports:
+      - '4318:4318' # OTLP HTTP
+      - '8889:8889' # Prometheus scrape endpoint
+    depends_on:
+      - jaeger
+
+  jaeger:
+    image: jaegertracing/all-in-one:1.62
+    container_name: vexa-jaeger
+    ports:
+      - '16686:16686'
+
+  prometheus:
+    image: prom/prometheus:v3.2.1
+    container_name: vexa-prometheus
+    volumes:
+      - ./tools/otel/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+    ports:
+      - '9090:9090'
+    depends_on:
+      - otel-collector
+
+  grafana:
+    image: grafana/grafana:11.5.2
+    container_name: vexa-grafana
+    environment:
+      GF_SECURITY_ADMIN_USER: admin
+      GF_SECURITY_ADMIN_PASSWORD: admin
+    ports:
+      - '3100:3100'
+    depends_on:
+      - prometheus
+      - jaeger
+
+volumes:
+  pgdata:

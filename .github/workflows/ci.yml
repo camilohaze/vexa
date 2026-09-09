@@ -1,0 +1,43 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  node:
+    name: Lint, test y build (NX affected)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+      - uses: nrwl/nx-set-shas@v4
+      - run: npm ci
+      - run: npx nx affected -t lint test build --parallel=3 --configuration=production
+
+  mobile-courier:
+    name: Flutter analyze y test
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: apps/mobile-courier
+    steps:
+      - uses: actions/checkout@v4
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+      - run: cp .env.example .env
+      - run: flutter pub get
+      - run: flutter analyze
+      - run: flutter test

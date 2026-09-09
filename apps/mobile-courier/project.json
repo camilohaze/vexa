@@ -1,0 +1,39 @@
+{
+  "name": "mobile-courier",
+  "$schema": "../../node_modules/nx/schemas/project-schema.json",
+  "projectType": "application",
+  "sourceRoot": "apps/mobile-courier/lib",
+  "tags": ["type:app", "platform:mobile"],
+  "targets": {
+    "pub-get": {
+      "executor": "nx:run-commands",
+      "options": { "command": "flutter pub get", "cwd": "apps/mobile-courier" }
+    },
+    "analyze": {
+      "executor": "nx:run-commands",
+      "options": { "command": "flutter analyze", "cwd": "apps/mobile-courier" }
+    },
+    "test": {
+      "executor": "nx:run-commands",
+      "options": { "command": "flutter test", "cwd": "apps/mobile-courier" }
+    },
+    "codegen": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "dart run build_runner build --delete-conflicting-outputs",
+        "cwd": "apps/mobile-courier"
+      }
+    },
+    "build-apk": {
+      "executor": "nx:run-commands",
+      "options": { "command": "flutter build apk --release", "cwd": "apps/mobile-courier" }
+    },
+    "build-ios": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "flutter build ios --release --no-codesign",
+        "cwd": "apps/mobile-courier"
+      }
+    }
+  }
+}

@@ -1,0 +1,48 @@
+{
+  "compileOnSave": false,
+  "compilerOptions": {
+    "rootDir": ".",
+    "sourceMap": true,
+    "declaration": false,
+    "moduleResolution": "bundler",
+    "emitDecoratorMetadata": true,
+    "experimentalDecorators": true,
+    "importHelpers": true,
+    "target": "es2015",
+    "module": "esnext",
+    "lib": [
+      "es2020",
+      "dom"
+    ],
+    "skipLibCheck": true,
+    "skipDefaultLibCheck": true,
+    "strict": false,
+    "paths": {
+      "@vexa/shared": [
+        "./libs/shared/src/index.ts"
+      ],
+      "@vexa/auth": [
+        "./libs/auth/src/index.ts"
+      ],
+      "@vexa/notifications": [
+        "./libs/notifications/src/index.ts"
+      ],
+      "@vexa/payments": [
+        "./libs/payments/src/index.ts"
+      ],
+      "@vexa/ui": [
+        "./libs/ui/src/index.ts"
+      ],
+      "@vexa/maps": [
+        "./libs/maps/src/index.ts"
+      ],
+      "@vexa/core": [
+        "./libs/core/src/index.ts"
+      ]
+    }
+  },
+  "exclude": [
+    "node_modules",
+    "tmp"
+  ]
+}
