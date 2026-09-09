@@ -1,3 +1,4 @@
+import { CurrencyPipe, DatePipe } from '@angular/common';
 import { ChangeDetectionStrategy, Component, effect, inject, signal } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule } from '@angular/forms';
 import { MatButtonModule } from '@angular/material/button';
@@ -17,12 +18,17 @@ interface CompanySettings {
   twoFactor: boolean;
   language: 'es' | 'en';
   currency: 'COP' | 'USD';
+  plan?: string | null;
+  planPrice?: number | null;
+  renewalAt?: string | null;
 }
 
 /** Figma: company-settings — perfil de empresa, seguridad, preferencias, suscripción. */
 @Component({
   selector: 'vexa-settings',
   imports: [
+    CurrencyPipe,
+    DatePipe,
     MatButtonModule,
     MatFormFieldModule,
     MatInputModule,
@@ -72,10 +78,10 @@ interface CompanySettings {
       <div class="vexa-card block sub">
         <h3 class="vexa-overline">Suscripción</h3>
         <div class="sub__plan">
-          <strong>Plan Enterprise Pro</strong>
+          <strong>{{ settings()?.plan ?? '—' }}</strong>
           <span class="vexa-pill vexa-pill--info">Activo</span>
         </div>
-        <p class="muted">Renueva el 24 Oct, 2026 · $299/mes</p>
+        <p class="muted">Renueva el {{ (settings()?.renewalAt | date:'mediumDate') ?? '—' }} · {{ settings()?.planPrice ?? 0 | currency:'USD':'symbol-narrow':'1.0-0' }}/mes</p>
         <button mat-stroked-button>Mejorar suscripción</button>
       </div>
 
@@ -113,9 +119,11 @@ export class Settings {
     language: 'es' as 'es' | 'en',
     currency: 'COP' as 'COP' | 'USD',
   });
+  protected readonly settings = signal<CompanySettings | null>(null);
 
   constructor() {
     this.api.get<CompanySettings>('companies/me/settings').subscribe((s) => {
+      this.settings.set(s);
       this.form.patchValue({ name: s.name, address: s.address ?? '' });
       this.account.patchValue({ adminEmail: s.adminEmail ?? '', twoFactor: s.twoFactor });
       this.prefs.patchValue({ language: s.language, currency: s.currency });

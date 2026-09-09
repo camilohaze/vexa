@@ -27,4 +27,13 @@ export class CompanySettingsEntity {
 
   @Column({ type: 'jsonb', default: {} })
   meta!: Record<string, unknown>;
+
+  @Column({ nullable: true })
+  plan?: string | null;
+
+  @Column({ name: 'plan_price', type: 'decimal', precision: 10, scale: 2, nullable: true })
+  planPrice?: number | null;
+
+  @Column({ name: 'renewal_at', type: 'timestamptz', nullable: true })
+  renewalAt?: Date | null;
 }

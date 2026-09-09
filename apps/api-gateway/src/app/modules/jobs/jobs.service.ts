@@ -23,6 +23,7 @@ import { CouriersService } from '../couriers/couriers.service';
 import { CancelJobDto, CompleteJobDto, CreateJobDto, ListJobsQueryDto, RateJobDto, SendMessageDto } from './dto';
 import { JobEntity } from './job.entity';
 import { JobMessageEntity } from './message.entity';
+import { PriceConfigEntity } from './price-config.entity';
 
 const ALLOWED_TRANSITIONS: Record<JobStatus, JobStatus[]> = {
   [JobStatus.PENDING]: [JobStatus.OFFERED, JobStatus.ACCEPTED, JobStatus.CANCELLED],
@@ -41,6 +42,8 @@ export class JobsService {
     private readonly repo: Repository<JobEntity>,
     @InjectRepository(JobMessageEntity)
     private readonly messages: Repository<JobMessageEntity>,
+    @InjectRepository(PriceConfigEntity)
+    private readonly priceConfig: Repository<PriceConfigEntity>,
     private readonly dataSource: DataSource,
     private readonly companies: CompaniesService,
     private readonly couriers: CouriersService,
@@ -152,14 +155,31 @@ export class JobsService {
     return saved;
   }
 
+  private async ensurePriceConfig() {
+    let cfg = await this.priceConfig.findOneBy({});
+    if (!cfg) {
+      cfg = this.priceConfig.create({
+        base: 8000,
+        perKm: 1500,
+        perKg: 500,
+        expressMultiplier: 1.35,
+        sameDayMultiplier: 1.35,
+      });
+      await this.priceConfig.save(cfg);
+    }
+    return cfg;
+  }
+
   /** Tarifa sugerida: base + km + peso, multiplicador express. */
-  priceEstimate(distanceMeters: number, weightKg = 0, priority: 'standard' | 'express' = 'standard') {
-    const base = 8000; // COP
-    const perKm = 1500;
-    const perKg = 500;
+  async priceEstimate(distanceMeters: number, weightKg = 0, priority: 'standard' | 'express' = 'standard') {
+    const cfg = await this.ensurePriceConfig();
+    const base = Number(cfg.base);
+    const perKm = Number(cfg.perKm);
+    const perKg = Number(cfg.perKg);
     const km = distanceMeters / 1000;
     let price = base + perKm * km + perKg * weightKg;
-    if (priority === 'express') price *= 1.35;
+    const multiplier = priority === 'express' ? Number(cfg.expressMultiplier) : 1;
+    price *= multiplier;
     return {
       currency: 'COP',
       distanceMeters,
@@ -167,7 +187,7 @@ export class JobsService {
         base,
         distance: Math.round(perKm * km),
         weight: Math.round(perKg * weightKg),
-        priorityMultiplier: priority === 'express' ? 1.35 : 1,
+        priorityMultiplier: multiplier,
       },
       price: Math.round(price / 100) * 100,
     };

@@ -337,33 +337,21 @@ export class JobCreate {
     acceptTerms: [false],
   });
 
-  /** Estimación de respaldo si el servicio no responde. */
   protected readonly costs = computed(() => {
     const e = this.estimate();
-    if (e) {
-      return {
-        base: e.breakdown.base,
-        distance: e.breakdown.distance,
-        weight: e.breakdown.weight,
-        priority: Math.round(
-          (e.breakdown.base + e.breakdown.distance + e.breakdown.weight) *
-            (e.breakdown.priorityMultiplier - 1)
-        ),
-      };
-    }
-    const w = this.form.controls.weight.value;
-    const base = 5000;
-    const distance = Math.round(this.distanceMeters() / 1000) * 1500;
-    const weight = Math.max(0, w - 5) * 600;
-    const p = this.form.controls.priority.value;
-    const priority = p === 'same_day' ? 8000 : p === 'express' ? 5000 : 0;
-    return { base, distance, weight, priority };
+    if (!e) return { base: 0, distance: 0, weight: 0, priority: 0 };
+    return {
+      base: e.breakdown.base,
+      distance: e.breakdown.distance,
+      weight: e.breakdown.weight,
+      priority: Math.round(
+        (e.breakdown.base + e.breakdown.distance + e.breakdown.weight) *
+          (e.breakdown.priorityMultiplier - 1)
+      ),
+    };
   });
 
-  protected readonly costsTotal = computed(() => {
-    const c = this.costs();
-    return c.base + c.distance + c.weight + c.priority;
-  });
+  protected readonly costsTotal = computed(() => this.estimate()?.price ?? 0);
 
   protected canPublish() {
     return this.form.valid && this.form.controls.acceptTerms.value;

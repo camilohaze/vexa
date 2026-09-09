@@ -1,4 +1,4 @@
-import { IsBoolean, IsEmail, IsIn, IsOptional, IsString } from 'class-validator';
+import { IsBoolean, IsDateString, IsEmail, IsIn, IsNumber, IsOptional, IsString } from 'class-validator';
 
 export class UpdateCompanySettingsDto {
   @IsEmail()
@@ -20,4 +20,16 @@ export class UpdateCompanySettingsDto {
   @IsString()
   @IsOptional()
   address?: string;
+
+  @IsString()
+  @IsOptional()
+  plan?: string;
+
+  @IsNumber()
+  @IsOptional()
+  planPrice?: number;
+
+  @IsDateString()
+  @IsOptional()
+  renewalAt?: string;
 }

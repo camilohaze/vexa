@@ -180,8 +180,13 @@ export class CompaniesService {
     let settings = await this.settingsRepo.findOneBy({ companyId: company.id });
     if (!settings) {
       settings = this.settingsRepo.create({ companyId: company.id });
-      await this.settingsRepo.save(settings);
     }
+    if (!settings.plan) {
+      settings.plan = 'Estándar';
+      settings.planPrice = 299;
+      settings.renewalAt = new Date(Date.now() + 30 * 86400000);
+    }
+    await this.settingsRepo.save(settings);
     return { ...settings, name: company.name };
   }
 
