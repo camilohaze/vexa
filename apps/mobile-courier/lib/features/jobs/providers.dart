@@ -1,7 +1,30 @@
+import 'package:dio/dio.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import 'data/directions_repository.dart';
 import 'data/jobs_repository.dart';
 import 'domain/job.dart';
+
+/// Filtros seleccionados en el Job Board.
+final offeredFiltersProvider = StateProvider<Set<int>>((ref) => const {});
+
+final directionsRepositoryProvider = Provider<DirectionsRepository>(
+  (ref) => DirectionsRepository(dio: Dio()),
+);
+
+/// Ruta en tiempo real hacia el destino del pedido.
+final routeProvider = FutureProvider.autoDispose.family<RouteInfo?, String>((ref, jobId) async {
+  final job = await ref.watch(jobDetailProvider(jobId).future);
+  final target = job.status == JobStatus.accepted ? job.pickup : job.dropoff;
+  final repo = ref.watch(directionsRepositoryProvider);
+  try {
+    return await repo.fetchRoute(target);
+  } catch (error) {
+    debugPrint('Directions error: $error');
+    return null;
+  }
+});
 
 class OfferedJobsNotifier extends AsyncNotifier<List<Job>> {
   JobsRepository get _repository => ref.read(jobsRepositoryProvider);

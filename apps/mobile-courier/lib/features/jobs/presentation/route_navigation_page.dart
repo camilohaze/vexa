@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:intl/intl.dart';
 import 'package:mapbox_maps_flutter/mapbox_maps_flutter.dart';
 
 import '../../../app/router.dart';
@@ -19,6 +20,15 @@ class RouteNavigationPage extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final job = ref.watch(jobDetailProvider(jobId)).valueOrNull;
+    final route = ref.watch(routeProvider(jobId));
+    final info = route.valueOrNull;
+
+    final step = info?.steps.firstOrNull;
+    final distanceMeters = info?.distanceMeters ?? 0.0;
+    final durationSeconds = info?.durationSeconds ?? 0.0;
+    final distanceKm = distanceMeters / 1000;
+    final durationMin = (durationSeconds / 60).ceil();
+    final eta = DateTime.now().add(Duration(seconds: durationSeconds.ceil()));
 
     return Scaffold(
       body: Stack(
@@ -39,22 +49,28 @@ class RouteNavigationPage extends ConsumerWidget {
                   color: VexaColors.primary700,
                   borderRadius: BorderRadius.circular(VexaColors.radiusMd),
                 ),
-                child: const Row(
+                child: Row(
                   children: [
-                    Icon(Icons.turn_right, color: Colors.white),
-                    SizedBox(width: 12),
+                    const Icon(Icons.turn_right, color: Colors.white),
+                    const SizedBox(width: 12),
                     Expanded(
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Text('En 500 metros',
-                              style: TextStyle(
-                                  color: Colors.white,
-                                  fontWeight: FontWeight.w700,
-                                  fontSize: 15)),
-                          Text('Gira a la derecha',
-                              style: TextStyle(
-                                  color: Colors.white70, fontSize: 12)),
+                          Text(
+                            step == null
+                                ? 'Calculando ruta...'
+                                : 'En ${step.distanceMeters.round()} m',
+                            style: const TextStyle(
+                                color: Colors.white,
+                                fontWeight: FontWeight.w700,
+                                fontSize: 15),
+                          ),
+                          Text(
+                            step?.instruction ?? 'Dirígete al destino',
+                            style: const TextStyle(
+                                color: Colors.white70, fontSize: 12),
+                          ),
                         ],
                       ),
                     ),
@@ -80,21 +96,33 @@ class RouteNavigationPage extends ConsumerWidget {
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    const Row(
+                    Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        Text('14 min',
-                            style: TextStyle(
-                                fontSize: 20, fontWeight: FontWeight.w700)),
+                        Text(
+                          route.isLoading
+                              ? '— min'
+                              : '$durationMin min',
+                          style: const TextStyle(
+                              fontSize: 20, fontWeight: FontWeight.w700),
+                        ),
                         Column(
                           crossAxisAlignment: CrossAxisAlignment.end,
                           children: [
-                            Text('6.2 km restantes',
-                                style: TextStyle(
-                                    fontSize: 12, color: VexaColors.gray500)),
-                            Text('ETA 10:05 AM',
-                                style: TextStyle(
-                                    fontSize: 12, color: VexaColors.gray500)),
+                            Text(
+                              route.isLoading
+                                  ? '— km restantes'
+                                  : '${distanceKm.toStringAsFixed(1)} km restantes',
+                              style: const TextStyle(
+                                  fontSize: 12, color: VexaColors.gray500),
+                            ),
+                            Text(
+                              route.isLoading
+                                  ? 'ETA —'
+                                  : 'ETA ${DateFormat.Hm().format(eta)}',
+                              style: const TextStyle(
+                                  fontSize: 12, color: VexaColors.gray500),
+                            ),
                           ],
                         ),
                       ],
