@@ -90,7 +90,7 @@ const PRIORITIES = [
             <p class="vexa-body-sm muted">Dimensiones, prioridad e instrucciones.</p>
             <mat-form-field class="w-full">
               <mat-label>Descripción del paquete</mat-label>
-              <input matInput formControlName="description" placeholder="p. ej. Caja de repuestos mecánicos" />
+              <input matInput formControlName="description" />
             </mat-form-field>
             <div class="dims">
               <mat-form-field><mat-label>Largo (cm)</mat-label><input matInput type="number" formControlName="dimL" /></mat-form-field>
@@ -114,8 +114,7 @@ const PRIORITIES = [
             </mat-form-field>
             <mat-form-field class="w-full">
               <mat-label>Instrucciones adicionales</mat-label>
-              <textarea matInput formControlName="notes" rows="2"
-                  placeholder="Instrucciones especiales para el repartidor"></textarea>
+              <textarea matInput formControlName="notes" rows="2"></textarea>
             </mat-form-field>
           }
 
@@ -124,7 +123,7 @@ const PRIORITIES = [
             <h2 class="vexa-h4">Punto de recogida</h2>
             <div formGroupName="pickup" class="grid">
               <mat-form-field class="span2"><mat-label>Dirección</mat-label>
-                <input matInput formControlName="line1" placeholder="Calle 100 #15-20" /></mat-form-field>
+                <input matInput formControlName="line1" /></mat-form-field>
               <button mat-stroked-button type="button" class="span2 geo-btn"
                   (click)="geocode('pickup')">
                 <mat-icon>travel_explore</mat-icon> Buscar en mapa</button>
@@ -152,7 +151,7 @@ const PRIORITIES = [
             <h2 class="vexa-h4">Destino de entrega</h2>
             <div formGroupName="dropoff" class="grid">
               <mat-form-field class="span2"><mat-label>Dirección</mat-label>
-                <input matInput formControlName="line1" placeholder="Cra 7 #45-80" /></mat-form-field>
+                <input matInput formControlName="line1" /></mat-form-field>
               <button mat-stroked-button type="button" class="span2 geo-btn"
                   (click)="geocode('dropoff')">
                 <mat-icon>travel_explore</mat-icon> Buscar en mapa</button>
@@ -175,7 +174,7 @@ const PRIORITIES = [
             </div>
             <mat-form-field class="w-full">
               <mat-label>Instrucciones de entrega</mat-label>
-              <input matInput formControlName="dropoffNotes" placeholder="Dejar en recepción, tocar timbre" />
+              <input matInput formControlName="dropoffNotes" />
             </mat-form-field>
           }
 

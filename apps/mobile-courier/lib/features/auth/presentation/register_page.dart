@@ -72,7 +72,7 @@ class _RegisterPageState extends ConsumerState<RegisterPage> {
               const SizedBox(height: 18),
               AuthField(
                 label: 'Correo electrónico',
-                hint: 'john@example.com',
+                hint: '',
                 icon: Icons.mail_outline,
                 controller: _email,
                 keyboardType: TextInputType.emailAddress,
