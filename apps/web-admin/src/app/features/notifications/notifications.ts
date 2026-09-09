@@ -29,9 +29,9 @@ import { ApiService } from '../../core/api/api.service';
     <vexa-page-header title="Centro de notificaciones" />
 
     <section class="stats">
-      <div class="stat vexa-card"><span>Enviadas hoy</span><strong>{{ stats().sentToday | number }}</strong><small class="up">+7% vs ayer</small></div>
-      <div class="stat vexa-card"><span>Tasa de apertura</span><strong>{{ stats().openRate }}%</strong><small class="muted">+0.4% vs semana</small></div>
-      <div class="stat vexa-card"><span>Clics</span><strong>{{ stats().clickRate }}%</strong><small class="up">+1% vs promedio</small></div>
+      <div class="stat vexa-card"><span>Enviadas hoy</span><strong>{{ stats().sentToday | number }}</strong></div>
+      <div class="stat vexa-card"><span>Tasa de apertura</span><strong>{{ stats().openRate }}%</strong></div>
+      <div class="stat vexa-card"><span>Clics</span><strong>{{ stats().clickRate ?? 0 }}%</strong></div>
     </section>
 
     <div class="grid">
@@ -61,7 +61,7 @@ import { ApiService } from '../../core/api/api.service';
 
       <div>
         <div class="vexa-card block">
-          <h3 class="vexa-overline">Cola programada (2)</h3>
+          <h3 class="vexa-overline">Cola programada ({{ scheduled().length }})</h3>
           @for (s of scheduled(); track s.title) {
             <div class="sched"><strong>{{ s.title }}</strong><small>{{ s.desc }}</small></div>
           }

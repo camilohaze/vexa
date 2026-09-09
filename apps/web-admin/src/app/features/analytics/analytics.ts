@@ -84,17 +84,10 @@ interface AdminAnalytics {
 export class Analytics {
   protected readonly stats = signal<AdminAnalytics | null>(null);
 
-  protected readonly volume = () => this.stats()?.volume ?? [320, 380, 350, 420, 460, 430, 510];
-  protected readonly utilization = () => this.stats()?.utilization ?? [55, 62, 58, 70, 66, 74, 80];
-  protected readonly cohorts = () => this.stats()?.cohorts ?? [
-    { name: 'Cohorte base Ene', value: 64.5 },
-    { name: 'Feb 2026 sign-ups', value: 78.1 },
-    { name: 'Mar 2026 sign-ups', value: 52.6 },
-  ];
-  protected readonly geo = () => this.stats()?.geo ?? [
-    { name: 'Bogotá — Premium Zone', trips: '14,890 viajes' },
-    { name: 'Medellín — Metro', trips: '9,120 viajes' },
-  ];
+  protected readonly volume = () => this.stats()?.volume ?? [];
+  protected readonly utilization = () => this.stats()?.utilization ?? [];
+  protected readonly cohorts = () => this.stats()?.cohorts ?? [];
+  protected readonly geo = () => this.stats()?.geo ?? [];
 
   constructor() {
     inject(ApiService).get<AdminAnalytics>('admin/analytics').subscribe((a) => this.stats.set(a));

@@ -35,6 +35,7 @@ export interface Company {
   name: string;
   taxId: string;
   ownerId: string;
+  isActive: boolean;
   createdAt: string;
 }
 
@@ -44,6 +45,8 @@ export interface Courier {
   status: CourierStatus;
   vehicle: VehicleType;
   rating: number;
+  deliveredCount?: number;
+  verificationStatus?: string;
   lastLocation?: GeoPoint;
   fcmToken?: string;
 }

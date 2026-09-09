@@ -56,11 +56,11 @@ import { SocketEvents } from '@vexa/shared';
       </ng-container>
       <ng-container matColumnDef="deliveries">
         <th mat-header-cell *matHeaderCellDef>Entregas</th>
-        <td mat-cell *matCellDef="let c">{{ 0 }}</td>
+        <td mat-cell *matCellDef="let c">{{ c.deliveredCount ?? 0 }}</td>
       </ng-container>
       <ng-container matColumnDef="verification">
         <th mat-header-cell *matHeaderCellDef>Verificación</th>
-        <td mat-cell *matCellDef="let c"><span class="vexa-pill vexa-pill--success">Verificado</span></td>
+        <td mat-cell *matCellDef="let c"><span class="vexa-pill" [class.vexa-pill--success]="c.verificationStatus === 'Verificado'" [class.vexa-pill--warning]="c.verificationStatus === 'Pendiente'" [class.vexa-pill--error]="c.verificationStatus === 'Rechazado'">{{ c.verificationStatus }}</span></td>
       </ng-container>
       <ng-container matColumnDef="online">
         <th mat-header-cell *matHeaderCellDef>En línea</th>

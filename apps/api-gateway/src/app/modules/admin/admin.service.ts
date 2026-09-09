@@ -83,8 +83,8 @@ export class AdminService {
   async suspendUser(id: string) {
     const user = await this.users.findOneBy({ id });
     if (!user) throw new NotFoundException(`User ${id} not found`);
-    // Placeholder de suspensión: invalida la sesión activa.
     user.refreshTokenId = null;
+    user.isActive = false;
     return this.users.save(user);
   }
 
@@ -341,7 +341,7 @@ export class AdminService {
     return { baseRate: Number(cfg.baseRate), tiers: cfg.tiers, breakdown };
   }
 
-  private async buildCommissionBreakdown(tiers: { name: string; threshold?: number }[]) {
+  private async buildCommissionBreakdown(tiers: { name: string; rate: string; threshold?: number }[]) {
     const approved = await this.payments
       .createQueryBuilder('p')
       .select('p.amount', 'amount')
@@ -350,10 +350,10 @@ export class AdminService {
     const total = approved.reduce((acc, p) => acc + Number(p.amount), 0);
     if (total === 0) return [];
     const sortedTiers = [...tiers].sort((a, b) => (a.threshold ?? 0) - (b.threshold ?? 0));
-    return sortedTiers.map((t) => ({
-      label: t.name,
-      value: Math.round(total * 0.1),
-    }));
+    return sortedTiers.map((t) => {
+      const rate = parseFloat(t.rate?.replace('%', '') ?? '0');
+      return { label: t.name, value: Math.round(total * (rate / 100)) };
+    });
   }
 
   /** Cuentas de riesgo derivadas: repartidores con rating bajo o muchas cancelaciones. */

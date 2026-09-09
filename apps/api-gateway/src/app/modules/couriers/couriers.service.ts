@@ -33,8 +33,30 @@ export class CouriersService {
     private readonly redis: RedisService
   ) {}
 
-  findAll() {
-    return this.repo.find({ relations: { user: true }, order: { createdAt: 'DESC' } });
+  async findAll() {
+    const couriers = await this.repo.find({ relations: { user: true }, order: { createdAt: 'DESC' } });
+    const ids = couriers.map((c) => c.id);
+    const counts = await this.jobs
+      .createQueryBuilder('j')
+      .select('j.courier_id', 'courierId')
+      .addSelect('COUNT(*)', 'count')
+      .where('j.courier_id IN (:...ids) AND j.status = :status', { ids, status: JobStatus.DELIVERED })
+      .groupBy('j.courier_id')
+      .getRawMany<{ courierId: string; count: string }>();
+    const countMap = new Map(counts.map((c) => [c.courierId, Number(c.count)]));
+    return couriers.map((c) => ({
+      ...c,
+      deliveredCount: countMap.get(c.id) ?? 0,
+      verificationStatus: this.aggregateVerification(c.verification),
+    }));
+  }
+
+  private aggregateVerification(v?: Record<string, { status: string }> | null) {
+    if (!v) return 'Pendiente';
+    const values = Object.values(v);
+    if (values.every((x) => x.status === 'verified')) return 'Verificado';
+    if (values.some((x) => x.status === 'rejected')) return 'Rechazado';
+    return 'Pendiente';
   }
 
   async getById(id: string) {

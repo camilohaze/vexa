@@ -44,6 +44,9 @@ export class UserEntity {
   @Column({ name: 'refresh_token_id', nullable: true })
   refreshTokenId?: string | null;
 
+  @Column({ name: 'is_active', default: true })
+  isActive!: boolean;
+
   @CreateDateColumn({ name: 'created_at', type: 'timestamptz' })
   createdAt!: Date;
 
