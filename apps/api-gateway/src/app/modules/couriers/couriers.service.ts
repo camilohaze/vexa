@@ -76,6 +76,25 @@ export class CouriersService {
     return this.repo.save(this.repo.create({ userId, vehicle: dto.vehicle }));
   }
 
+  private defaultPayoutMethods(email: string) {
+    return [
+      { key: 'bank_transfer', label: 'Transferencia bancaria', detail: 'Cuenta Vexa Direct', fee: 'Gratis', time: 'Instante · 2 horas' },
+      { key: 'paypal', label: 'PayPal', detail: email, fee: '$1.50 comisión', time: '1–2 días hábiles' },
+      { key: 'nequi', label: 'Nequi / Billetera móvil', detail: 'Pago instantáneo', fee: '1% comisión', time: 'Instante' },
+    ];
+  }
+
+  async payoutMethods(userId: string) {
+    const courier = await this.repo.findOne({ where: { userId }, relations: { user: true } });
+    if (!courier) throw new NotFoundException('Courier profile not found');
+    if (!courier.payoutDetails?.methods?.length) {
+      const methods = this.defaultPayoutMethods(courier.user?.email ?? 'Cuenta vinculada');
+      courier.payoutDetails = { methods };
+      await this.repo.save(courier);
+    }
+    return courier.payoutDetails.methods;
+  }
+
   /** Promedio móvil del rating al recibir una calificación. */
   async applyRating(courierId: string, score: number) {
     const courier = await this.getById(courierId);

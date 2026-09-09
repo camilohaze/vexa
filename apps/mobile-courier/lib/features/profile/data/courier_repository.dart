@@ -81,6 +81,15 @@ class CourierRepository {
     return response.data ?? const {};
   }
 
+  Future<List<Map<String, dynamic>>> fetchPayoutMethods() async {
+    final response =
+        await _api.dio.get<List<dynamic>>('/couriers/me/payout-methods');
+    return (response.data ?? const [])
+        .whereType<Map>()
+        .map(Map<String, dynamic>.from)
+        .toList();
+  }
+
   Future<CourierStatus> updateStatus(CourierStatus status) async {
     final response = await _api.dio.patch<Map<String, dynamic>>(
       '/couriers/me/status',

@@ -7,6 +7,14 @@ import '../../../core/theme/vexa_colors.dart';
 import '../../profile/data/courier_repository.dart';
 import '../providers.dart';
 
+final payoutMethodsProvider = FutureProvider<List<Map<String, dynamic>>>((ref) async {
+  try {
+    return await ref.watch(courierRepositoryProvider).fetchPayoutMethods();
+  } catch (_) {
+    return const [];
+  }
+});
+
 /// Figma: withdraw-funds — balance disponible, monto con MAX,
 /// métodos de retiro y confirmación.
 class WithdrawPage extends ConsumerStatefulWidget {
@@ -21,9 +29,7 @@ class _WithdrawPageState extends ConsumerState<WithdrawPage> {
   int _method = 0;
   bool _submitting = false;
 
-  static const _methodKeys = ['bank_transfer', 'paypal', 'nequi'];
-
-  Future<void> _confirm() async {
+  Future<void> _confirm(List<Map<String, dynamic>> methods) async {
     final amount = double.tryParse(_amount.text) ?? 0;
     if (amount <= 0) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -33,9 +39,10 @@ class _WithdrawPageState extends ConsumerState<WithdrawPage> {
     }
     setState(() => _submitting = true);
     try {
+      final key = methods[_method]['key'] as String? ?? '';
       await ref
           .read(courierRepositoryProvider)
-          .requestPayout(amount, _methodKeys[_method]);
+          .requestPayout(amount, key);
       ref.invalidate(earningsSummaryProvider);
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
@@ -53,12 +60,6 @@ class _WithdrawPageState extends ConsumerState<WithdrawPage> {
     }
   }
 
-  static const _methods = [
-    ('Transferencia bancaria', 'Cuenta Vexa Direct', 'Gratis', 'Instante · 2 horas'),
-    ('PayPal', 'marcus.partner@gmail.com', r'$1.50 comisión', '1–2 días hábiles'),
-    ('Nequi / Billetera móvil', 'Pago instantáneo', '1% comisión', 'Instante'),
-  ];
-
   @override
   void dispose() {
     _amount.dispose();
@@ -73,6 +74,7 @@ class _WithdrawPageState extends ConsumerState<WithdrawPage> {
           today: 0, completed: 0,
           dailyBars: [0, 0, 0, 0, 0, 0, 0], breakdown: [],
         );
+    final methodsAsync = ref.watch(payoutMethodsProvider);
     final theme = Theme.of(context);
 
     return Scaffold(
@@ -117,22 +119,35 @@ class _WithdrawPageState extends ConsumerState<WithdrawPage> {
           const SizedBox(height: 24),
           Text('Método de retiro', style: theme.textTheme.labelLarge),
           const SizedBox(height: 8),
-          for (var i = 0; i < _methods.length; i++) ...[
-            _MethodCard(
-              data: _methods[i],
-              selected: _method == i,
-              onTap: () => setState(() => _method = i),
-            ),
-            const SizedBox(height: 8),
-          ],
-          const SizedBox(height: 16),
-          FilledButton(
-            onPressed: _submitting ? null : _confirm,
-            child: _submitting
-                ? const SizedBox(
-                    width: 20, height: 20,
-                    child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
-                : const Text('Confirmar retiro'),
+          methodsAsync.when(
+            data: (methods) {
+              if (methods.isEmpty) {
+                return const Text('No hay métodos de retiro configurados.');
+              }
+              return Column(
+                children: [
+                  for (var i = 0; i < methods.length; i++) ...[
+                    _MethodCard(
+                      data: methods[i],
+                      selected: _method == i,
+                      onTap: () => setState(() => _method = i),
+                    ),
+                    const SizedBox(height: 8),
+                  ],
+                  const SizedBox(height: 16),
+                  FilledButton(
+                    onPressed: _submitting ? null : () => _confirm(methods),
+                    child: _submitting
+                        ? const SizedBox(
+                            width: 20, height: 20,
+                            child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+                        : const Text('Confirmar retiro'),
+                  ),
+                ],
+              );
+            },
+            loading: () => const Center(child: CircularProgressIndicator()),
+            error: (_, __) => const Text('Error al cargar métodos de retiro.'),
           ),
         ],
       ),
@@ -147,7 +162,7 @@ class _MethodCard extends StatelessWidget {
     required this.onTap,
   });
 
-  final (String, String, String, String) data;
+  final Map<String, dynamic> data;
   final bool selected;
   final VoidCallback onTap;
 
@@ -179,16 +194,16 @@ class _MethodCard extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(data.$1,
+                  Text(data['label'] as String? ?? '',
                       style: const TextStyle(
                           fontSize: 14, fontWeight: FontWeight.w600)),
-                  Text('${data.$2} · ${data.$4}',
+                  Text('${data['detail'] as String? ?? ''} · ${data['time'] as String? ?? ''}',
                       style: const TextStyle(
                           fontSize: 11, color: VexaColors.gray500)),
                 ],
               ),
             ),
-            Text(data.$3,
+            Text(data['fee'] as String? ?? '',
                 style: const TextStyle(
                     fontSize: 12,
                     fontWeight: FontWeight.w600,

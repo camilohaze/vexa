@@ -60,6 +60,9 @@ export class CourierEntity {
   @Column({ name: 'vehicle_details', type: 'jsonb', nullable: true })
   vehicleDetails?: { make?: string; year?: number; plate?: string; color?: string } | null;
 
+  @Column({ name: 'payout_details', type: 'jsonb', nullable: true })
+  payoutDetails?: { methods: { key: string; label: string; detail: string; fee: string; time: string }[] } | null;
+
   @CreateDateColumn({ name: 'created_at', type: 'timestamptz' })
   createdAt!: Date;
 

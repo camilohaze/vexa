@@ -79,6 +79,12 @@ export class CouriersController {
     return this.couriers.listPayouts(userId);
   }
 
+  @Get('me/payout-methods')
+  @Roles(UserRole.COURIER)
+  payoutMethods(@CurrentUser('id') userId: string) {
+    return this.couriers.payoutMethods(userId);
+  }
+
   @Post('me/payouts')
   @Roles(UserRole.COURIER)
   requestPayout(@CurrentUser('id') userId: string, @Body() dto: CreatePayoutDto) {
