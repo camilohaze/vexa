@@ -2,11 +2,18 @@ import { ChangeDetectionStrategy, Component, inject, signal } from '@angular/cor
 import { MatIconModule } from '@angular/material/icon';
 import { MatPaginatorModule, PageEvent } from '@angular/material/paginator';
 import { RouterLink } from '@angular/router';
-import { Job, JobStatus, Paginated } from '@vexa/shared';
+import { JobStatus, Paginated } from '@vexa/shared';
 import { StatusChip } from '@vexa/ui';
-import { JobsService } from './jobs.service';
+import { JobsService, JobWithCourier } from './jobs.service';
 
 type Tab = 'all' | 'active' | 'pending';
+
+const PACKAGE_TYPE_LABELS: Record<string, string> = {
+  document: 'Documento',
+  small: 'Paquete pequeño',
+  large: 'Paquete grande',
+  pallet: 'Pallet',
+};
 
 /** Figma: web-active-deliveries */
 @Component({
@@ -33,9 +40,10 @@ type Tab = 'all' | 'active' | 'pending';
       <div class="table-header">
         <span class="col col--id">ID</span>
         <span class="col col--courier">Repartidor</span>
-        <span class="col col--detail">Detalle</span>
+        <span class="col col--detail">Tipo</span>
         <span class="col col--route">Ruta</span>
         <span class="col col--status">Estado</span>
+        <span class="col col--eta">ETA</span>
         <span class="col col--progress">Progreso</span>
       </div>
       @for (job of page()?.items ?? []; track job.id) {
@@ -43,11 +51,12 @@ type Tab = 'all' | 'active' | 'pending';
           <span class="col col--id row-id">#{{ job.id.slice(0, 8).toUpperCase() }}</span>
           <span class="col col--courier row-courier">
             <mat-icon>person</mat-icon>
-            {{ job.courierId ? 'Repartidor #' + job.courierId.slice(0, 6) : 'Sin asignar' }}
+            {{ job.courier?.user?.fullName ?? 'Sin asignar' }}
           </span>
-          <span class="col col--detail">{{ job.notes || '—' }}</span>
+          <span class="col col--detail">{{ packageTypeLabel(job.packageType) }}</span>
           <span class="col col--route">{{ job.pickup.city }} → {{ job.dropoff.city }}</span>
           <span class="col col--status"><vexa-status-chip [status]="job.status" /></span>
+          <span class="col col--eta">{{ etaOf(job) }}</span>
           <span class="col col--progress">
             <span class="progress">
               <span class="progress__bar" [style.width.%]="progressOf(job)"></span>
@@ -93,6 +102,7 @@ type Tab = 'all' | 'active' | 'pending';
     .col--detail { width: 140px; flex: none; color: var(--vexa-gray-600); font-size: 14px; }
     .col--route { flex: 1 1 auto; min-width: 0; color: var(--vexa-gray-600); font-size: 14px; }
     .col--status { width: 110px; flex: none; }
+    .col--eta { width: 110px; flex: none; color: var(--vexa-gray-600); font-size: 14px; }
     .col--progress { width: 140px; flex: none; display: flex; align-items: center; gap: 10px; }
     .row-id { font-weight: 700; color: var(--vexa-gray-900); font-size: 14px; }
     .row-courier { font-size: 14px; color: var(--vexa-gray-900); font-weight: 500; }
@@ -112,7 +122,7 @@ export class JobsList {
     { value: 'pending', label: 'Recolecciones pendientes' },
   ];
 
-  protected readonly page = signal<Paginated<Job> | null>(null);
+  protected readonly page = signal<Paginated<JobWithCourier> | null>(null);
   protected readonly tab = signal<Tab>('all');
   protected readonly pageSize = 20;
   private pageIndex = 0;
@@ -139,8 +149,26 @@ export class JobsList {
     this.load();
   }
 
-  progressOf(job: Job) {
+  progressOf(job: JobWithCourier) {
     return JobsList.PROGRESS[job.status] ?? 0;
+  }
+
+  protected packageTypeLabel(type: string | undefined): string {
+    return type ? (PACKAGE_TYPE_LABELS[type] ?? type) : '—';
+  }
+
+  protected etaOf(job: JobWithCourier): string {
+    if (job.status === JobStatus.DELIVERED) {
+      return job.completedAt
+        ? new Date(job.completedAt).toLocaleTimeString('es-CO', { hour: '2-digit', minute: '2-digit' })
+        : '—';
+    }
+    if (job.status === JobStatus.CANCELLED) return '—';
+    if (job.pickedUpAt && job.durationSeconds) {
+      const eta = new Date(new Date(job.pickedUpAt).getTime() + job.durationSeconds * 1000);
+      return eta.toLocaleTimeString('es-CO', { hour: '2-digit', minute: '2-digit' });
+    }
+    return 'Por confirmar';
   }
 
   onPage(event: PageEvent) {

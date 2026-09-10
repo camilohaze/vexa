@@ -5,7 +5,7 @@ import { RouterLink } from '@angular/router';
 import { MatPaginatorModule, PageEvent } from '@angular/material/paginator';
 import { StatusChip } from '@vexa/ui';
 import { ApiService } from '../../core/api/api.service';
-import { DeliveryHistoryJob, JobsService } from '../jobs/jobs.service';
+import { JobWithCourier, JobsService } from '../jobs/jobs.service';
 
 type Tab = 'invoices' | 'history';
 
@@ -177,7 +177,7 @@ export class Invoices {
   protected readonly totalBilled = computed(() => this.invoices().reduce((acc, i) => acc + i.total, 0));
 
   // --- Historial de entregas ---
-  protected readonly historyRows = signal<DeliveryHistoryJob[]>([]);
+  protected readonly historyRows = signal<JobWithCourier[]>([]);
   protected readonly historyTotal = signal(0);
   protected readonly historyStats = signal({ totalCount: 0, totalSpend: 0, avgTransportSeconds: 0 });
   protected readonly exporting = signal(false);
@@ -204,7 +204,7 @@ export class Invoices {
     this.loadHistory();
   }
 
-  protected courierNameOf(job: DeliveryHistoryJob): string {
+  protected courierNameOf(job: JobWithCourier): string {
     return job.courier?.user?.fullName ?? 'Repartidor';
   }
 

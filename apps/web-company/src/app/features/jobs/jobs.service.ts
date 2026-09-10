@@ -24,11 +24,11 @@ export interface DeliveryHistoryStats {
   avgTransportSeconds: number;
 }
 
-export interface DeliveryHistoryJob extends Job {
+export interface JobWithCourier extends Job {
   courier?: { id: string; user?: { fullName?: string } } | null;
 }
 
-export interface DeliveryHistoryPage extends Paginated<DeliveryHistoryJob> {
+export interface DeliveryHistoryPage extends Paginated<JobWithCourier> {
   stats: DeliveryHistoryStats;
 }
 
@@ -37,7 +37,7 @@ export class JobsService {
   private readonly api = inject(ApiService);
 
   list(params: { status?: JobStatus; page?: number; pageSize?: number } = {}) {
-    return this.api.get<Paginated<Job>>('jobs', params as Record<string, string | number>);
+    return this.api.get<Paginated<JobWithCourier>>('jobs', params as Record<string, string | number>);
   }
 
   getById(id: string) {

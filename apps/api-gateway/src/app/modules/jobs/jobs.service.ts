@@ -104,6 +104,7 @@ export class JobsService {
     }
     const [items, total] = await this.repo.findAndCount({
       where,
+      relations: { courier: { user: true } },
       order: { createdAt: 'DESC' },
       skip: (query.page - 1) * query.pageSize,
       take: query.pageSize,

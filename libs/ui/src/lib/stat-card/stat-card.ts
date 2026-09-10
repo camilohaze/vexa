@@ -7,7 +7,7 @@ import { MatIconModule } from '@angular/material/icon';
   template: `
     <div class="stat vexa-card">
       <div class="stat__main">
-        <span class="vexa-overline">{{ label() }}</span>
+        <span class="stat__label">{{ label() }}</span>
         <span class="stat__value">{{ value() }}</span>
         @if (delta(); as d) {
           <span class="stat__delta" [class.stat__delta--neg]="d.startsWith('-')">
@@ -23,6 +23,7 @@ import { MatIconModule } from '@angular/material/icon';
   styles: `
     .stat { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; }
     .stat__main { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+    .stat__label { font-size: 14px; font-weight: 500; color: var(--vexa-gray-600); }
     .stat__value { font-size: 30px; font-weight: 700; line-height: 1.15; color: var(--vexa-gray-900); }
     .stat__delta { font-size: 12px; font-weight: 600; color: var(--vexa-success-700); }
     .stat__delta--neg { color: var(--vexa-error-700); }
