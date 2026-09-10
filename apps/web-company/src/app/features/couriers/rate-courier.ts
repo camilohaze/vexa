@@ -3,7 +3,7 @@ import { MatButtonModule } from '@angular/material/button';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
-import { Router } from '@angular/router';
+import { ActivatedRoute, Router } from '@angular/router';
 import { PageHeader, RatingStars } from '@vexa/ui';
 import { JobsService } from '../jobs/jobs.service';
 
@@ -45,6 +45,7 @@ export class RateCourier {
   readonly id = input.required<string>();
   private readonly snack = inject(MatSnackBar);
   private readonly router = inject(Router);
+  private readonly route = inject(ActivatedRoute);
   private readonly jobs = inject(JobsService);
 
   protected readonly overall = signal(0);
@@ -69,7 +70,7 @@ export class RateCourier {
     this.jobs.rate(this.id(), score || 5, this.comment || undefined).subscribe({
       next: () => {
         this.snack.open('¡Gracias por tu calificación!', undefined, { duration: 2500 });
-        this.router.navigate(['/jobs']);
+        this.router.navigate(['..', 'jobs'], { relativeTo: this.route });
       },
       error: () =>
         this.snack.open('No se pudo enviar la calificación', undefined, { duration: 3000 }),

@@ -35,7 +35,7 @@ const STEP_LABEL: Record<string, string> = {
           </div>
         </div>
       </div>
-      <a routerLink="/verification" class="hero__btn">Editar perfil</a>
+      <a routerLink="../verification" class="hero__btn">Editar perfil</a>
     </div>
 
     <div class="grid">

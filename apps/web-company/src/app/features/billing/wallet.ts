@@ -14,7 +14,7 @@ import { ApiService } from '../../core/api/api.service';
         <strong class="balance-card__value">\${{ wallet()?.spent ?? 0 | number: '1.2-2' }}</strong>
         <div class="balance-card__actions">
           <button type="button" class="btn btn--white">Recargar saldo</button>
-          <a routerLink="/wallet/methods" class="btn btn--ghost">Métodos de pago</a>
+          <a routerLink="../wallet/methods" class="btn btn--ghost">Métodos de pago</a>
         </div>
       </div>
 

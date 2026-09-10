@@ -1,5 +1,5 @@
 import { ChangeDetectionStrategy, Component, inject, input, OnInit } from '@angular/core';
-import { Router } from '@angular/router';
+import { ActivatedRoute, Router } from '@angular/router';
 import { firstValueFrom } from 'rxjs';
 import { User } from '@vexa/shared';
 import { ApiService } from '../../core/api/api.service';
@@ -19,6 +19,7 @@ export class AuthCallback implements OnInit {
   private readonly auth = inject(AuthStore);
   private readonly api = inject(ApiService);
   private readonly router = inject(Router);
+  private readonly route = inject(ActivatedRoute);
 
   async ngOnInit() {
     this.auth.handleCallback({
@@ -36,6 +37,6 @@ export class AuthCallback implements OnInit {
     } catch {
       // el interceptor reintentará en la próxima petición
     }
-    await this.router.navigate(['/dashboard']);
+    await this.router.navigate(['..', 'dashboard'], { relativeTo: this.route });
   }
 }

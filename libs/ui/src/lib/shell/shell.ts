@@ -231,10 +231,13 @@ export class Shell {
   );
 
   protected readonly activePageTitle = computed(() => {
-    const url = this.currentUrl();
+    // navItems() routes are relative (resolved against this shell's own mount point,
+    // e.g. '/company'), so match against the URL segment they actually land on rather
+    // than the full absolute URL.
+    const segments = this.currentUrl().split('/').filter(Boolean);
     const match = [...this.navItems()]
       .sort((a, b) => b.route.length - a.route.length)
-      .find((item) => url === item.route || url.startsWith(`${item.route}/`));
+      .find((item) => segments.includes(item.route));
     return match?.label ?? '';
   });
 

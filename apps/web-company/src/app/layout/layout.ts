@@ -5,13 +5,13 @@ import { AuthStore } from '../core/auth/auth.store';
 import { RealtimeService } from '../core/realtime/realtime.service';
 
 const NAV: NavItem[] = [
-  { label: 'Panel', icon: 'home', route: '/dashboard' },
-  { label: 'Envíos', icon: 'inventory_2', route: '/jobs' },
-  { label: 'Seguimiento', icon: 'place', route: '/tracking' },
-  { label: 'Billetera', icon: 'credit_card', route: '/wallet' },
-  { label: 'Facturación', icon: 'description', route: '/billing' },
-  { label: 'Notificaciones', icon: 'notifications', route: '/notifications' },
-  { label: 'Configuración', icon: 'settings', route: '/settings' },
+  { label: 'Panel', icon: 'home', route: 'dashboard' },
+  { label: 'Envíos', icon: 'inventory_2', route: 'jobs' },
+  { label: 'Seguimiento', icon: 'place', route: 'tracking' },
+  { label: 'Billetera', icon: 'credit_card', route: 'wallet' },
+  { label: 'Facturación', icon: 'description', route: 'billing' },
+  { label: 'Notificaciones', icon: 'notifications', route: 'notifications' },
+  { label: 'Configuración', icon: 'settings', route: 'settings' },
 ];
 
 @Component({

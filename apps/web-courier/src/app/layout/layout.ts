@@ -4,12 +4,12 @@ import { NavItem, Shell } from '@vexa/ui';
 import { AuthStore } from '../core/auth/auth.store';
 
 const NAV: NavItem[] = [
-  { label: 'Panel', icon: 'home', route: '/dashboard' },
-  { label: 'Entregas', icon: 'inventory_2', route: '/deliveries' },
-  { label: 'Ganancias', icon: 'bar_chart', route: '/earnings' },
-  { label: 'Billetera', icon: 'credit_card', route: '/wallet' },
-  { label: 'Desempeño', icon: 'military_tech', route: '/performance' },
-  { label: 'Perfil', icon: 'person', route: '/profile' },
+  { label: 'Panel', icon: 'home', route: 'dashboard' },
+  { label: 'Entregas', icon: 'inventory_2', route: 'deliveries' },
+  { label: 'Ganancias', icon: 'bar_chart', route: 'earnings' },
+  { label: 'Billetera', icon: 'credit_card', route: 'wallet' },
+  { label: 'Desempeño', icon: 'military_tech', route: 'performance' },
+  { label: 'Perfil', icon: 'person', route: 'profile' },
 ];
 
 /** El centro de verificación se alcanza desde el botón "Editar perfil" en Perfil,

@@ -26,7 +26,7 @@ type Tab = 'all' | 'active' | 'pending';
           </button>
         }
       </div>
-      <a routerLink="/jobs/new" class="express-btn">Solicitar repartidor exprés</a>
+      <a routerLink="../jobs/new" class="express-btn">Solicitar repartidor exprés</a>
     </div>
 
     <div class="vexa-card table-card">
@@ -39,7 +39,7 @@ type Tab = 'all' | 'active' | 'pending';
         <span class="col col--progress">Progreso</span>
       </div>
       @for (job of page()?.items ?? []; track job.id) {
-        <a [routerLink]="['/jobs', job.id]" class="row">
+        <a [routerLink]="['../jobs', job.id]" class="row">
           <span class="col col--id row-id">#{{ job.id.slice(0, 8).toUpperCase() }}</span>
           <span class="col col--courier row-courier">
             <mat-icon>person</mat-icon>

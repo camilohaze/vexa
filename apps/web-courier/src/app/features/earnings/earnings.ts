@@ -28,7 +28,7 @@ const DAY_LABELS = ['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom'];
       <div class="headline-card__left">
         <span class="vexa-overline">Total {{ periodLabel() }}</span>
         <strong class="headline-card__value">\${{ periodValue() | number: '1.2-2' }}</strong>
-        <a routerLink="/wallet" class="withdraw-btn">Retirar fondos</a>
+        <a routerLink="../wallet" class="withdraw-btn">Retirar fondos</a>
       </div>
       <div class="headline-card__meta">
         <div class="meta-row">

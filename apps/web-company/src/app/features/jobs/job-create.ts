@@ -7,7 +7,7 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
-import { Router } from '@angular/router';
+import { ActivatedRoute, Router } from '@angular/router';
 import { debounceTime } from 'rxjs';
 import { GeocodingResult, GeocodingService } from '@vexa/maps';
 import { JobPriceBreakdown } from '@vexa/shared';
@@ -326,6 +326,7 @@ export class JobCreate {
   private readonly jobs = inject(JobsService);
   private readonly snack = inject(MatSnackBar);
   private readonly router = inject(Router);
+  private readonly route = inject(ActivatedRoute);
   private readonly geocoding = inject(GeocodingService);
 
   protected readonly suggestions = signal<Record<'pickup' | 'dropoff', GeocodingResult[]>>({
@@ -480,7 +481,7 @@ export class JobCreate {
       .subscribe({
         next: (job) => {
           this.snack.open('Pedido publicado', undefined, { duration: 3000 });
-          this.router.navigate(['/jobs', job.id]);
+          this.router.navigate(['..', 'jobs', job.id], { relativeTo: this.route });
         },
         error: () => {
           this.saving.set(false);

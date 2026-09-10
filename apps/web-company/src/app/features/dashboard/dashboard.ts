@@ -17,11 +17,11 @@ import { JobsService } from '../jobs/jobs.service';
         <p>Tu flujo logístico va bien. {{ activeCount() }} envíos en tránsito.</p>
       </div>
       <div class="banner__actions">
-        <a routerLink="/jobs/new" class="banner__btn banner__btn--primary">
+        <a routerLink="../jobs/new" class="banner__btn banner__btn--primary">
           <mat-icon>add</mat-icon>
           Nuevo envío
         </a>
-        <a routerLink="/tracking" class="banner__btn banner__btn--ghost">
+        <a routerLink="../tracking" class="banner__btn banner__btn--ghost">
           <mat-icon>search</mat-icon>
           Rastrear envío
         </a>

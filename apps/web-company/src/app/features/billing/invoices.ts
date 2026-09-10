@@ -96,7 +96,7 @@ type Tab = 'invoices' | 'history';
           <span class="col col--amount">Costo total</span>
         </div>
         @for (job of historyRows(); track job.id) {
-          <a [routerLink]="['/jobs', job.id]" class="row">
+          <a [routerLink]="['../jobs', job.id]" class="row">
             <span class="col col--id">VX-{{ job.id.slice(0, 6).toUpperCase() }}</span>
             <span class="col col--date">{{ job.completedAt ? (job.completedAt | date: 'mediumDate') : '—' }}</span>
             <span class="col col--courier">{{ courierNameOf(job) }}</span>
