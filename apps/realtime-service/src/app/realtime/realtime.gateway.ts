@@ -52,7 +52,8 @@ export class RealtimeGateway
   ) {}
 
   afterInit(server: Server) {
-    server.adapter(createAdapter(this.redis.duplicate(), this.redis.duplicate()));
+    const ioServer = (server as any).server ?? server;
+    ioServer.adapter(createAdapter(this.redis.duplicate(), this.redis.duplicate()));
     server.use((socket, next) => {
       try {
         const token =
