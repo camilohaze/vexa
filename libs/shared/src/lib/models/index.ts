@@ -63,6 +63,7 @@ export interface JobPriceBreakdown {
   time: number;
   weight: number;
   priorityMultiplier: number;
+  demandMultiplier: number;
   subtotal: number;
   commission: number;
 }

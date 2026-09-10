@@ -10,6 +10,7 @@ import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { Router } from '@angular/router';
 import { debounceTime } from 'rxjs';
 import { GeocodingResult, GeocodingService } from '@vexa/maps';
+import { JobPriceBreakdown } from '@vexa/shared';
 import { environment } from '../../../environments/environment';
 import { JobsService } from './jobs.service';
 
@@ -232,6 +233,12 @@ const PRIORITIES = [
           @if (form.controls.priority.value !== 'standard') {
             <div class="breakdown__row"><span>Prioridad</span><span>{{ costs().priority | currency: 'COP':'symbol-narrow':'1.0-0' }}</span></div>
           }
+          @if (costs().demand > 0) {
+            <div class="breakdown__row">
+              <span>Demanda alta en la zona</span>
+              <span>{{ costs().demand | currency: 'COP':'symbol-narrow':'1.0-0' }}</span>
+            </div>
+          }
           <div class="breakdown__row"><span>Comisión plataforma</span><span>{{ costs().commission | currency: 'COP':'symbol-narrow':'1.0-0' }}</span></div>
           <hr />
           <div class="breakdown__total">
@@ -330,15 +337,8 @@ export class JobCreate {
     price: number;
     durationSeconds: number;
     trafficAware: boolean;
-    breakdown: {
-      base: number;
-      distance: number;
-      time: number;
-      weight: number;
-      priorityMultiplier: number;
-      subtotal: number;
-      commission: number;
-    };
+    demand: { availableCouriersNearby: number; activeJobsNearby: number };
+    breakdown: JobPriceBreakdown;
   } | null>(null);
 
   protected readonly step = signal(0);
@@ -385,16 +385,16 @@ export class JobCreate {
 
   protected readonly costs = computed(() => {
     const e = this.estimate();
-    if (!e) return { base: 0, distance: 0, time: 0, weight: 0, priority: 0, commission: 0 };
+    if (!e) return { base: 0, distance: 0, time: 0, weight: 0, priority: 0, demand: 0, commission: 0 };
+    const base = e.breakdown.base + e.breakdown.distance + e.breakdown.time + e.breakdown.weight;
+    const afterPriority = base * e.breakdown.priorityMultiplier;
     return {
       base: e.breakdown.base,
       distance: e.breakdown.distance,
       time: e.breakdown.time,
       weight: e.breakdown.weight,
-      priority: Math.round(
-        (e.breakdown.base + e.breakdown.distance + e.breakdown.time + e.breakdown.weight) *
-          (e.breakdown.priorityMultiplier - 1)
-      ),
+      priority: Math.round(afterPriority - base),
+      demand: Math.round(afterPriority * (e.breakdown.demandMultiplier - 1)),
       commission: e.breakdown.commission,
     };
   });

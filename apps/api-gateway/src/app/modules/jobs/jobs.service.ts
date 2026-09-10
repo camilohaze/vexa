@@ -9,11 +9,13 @@ import { DataSource, FindOptionsWhere, IsNull, Repository } from 'typeorm';
 import { AuthenticatedUser } from '@vexa/auth';
 import { RedisService } from '@vexa/core';
 import {
+  GeoPoint,
   JobAcceptedEvent,
   JobCancelledEvent,
   JobCompletedEvent,
   JobMessageEvent,
   JobStatus,
+  MatchingDefaults,
   Paginated,
   RedisChannels,
   UserRole,
@@ -237,22 +239,53 @@ export class JobsService {
         expressMultiplier: 1.35,
         sameDayMultiplier: 1.6,
         commissionPercent: 20,
+        demandMultiplierMax: 1.3,
       });
       await this.priceConfig.save(cfg);
     }
     return cfg;
   }
 
+  /** Pedidos activos (pendientes o recién ofrecidos, sin repartidor aún) cerca de un punto. */
+  private countPendingNearby(pickup: GeoPoint, radiusMeters: number): Promise<number> {
+    return this.repo
+      .createQueryBuilder('job')
+      .where('job.status IN (:...statuses)', { statuses: [JobStatus.PENDING, JobStatus.OFFERED] })
+      .andWhere(
+        'ST_DWithin(job.pickup_point, ST_SetSRID(ST_MakePoint(:lng, :lat), 4326)::geography, :radius)',
+        { lng: pickup.lng, lat: pickup.lat, radius: radiusMeters }
+      )
+      .getCount();
+  }
+
+  /**
+   * Multiplicador por demanda: 1.0 cuando hay suficientes repartidores disponibles cerca
+   * frente a los pedidos activos en la zona; sube hasta demandMultiplierMax a medida que
+   * la relación pedidos/repartidores se dispara. Sin repartidores disponibles y al menos
+   * un pedido activo cercano, se aplica el máximo directamente.
+   */
+  private computeDemandMultiplier(availableNearby: number, pendingNearby: number, max: number): number {
+    if (pendingNearby === 0) return 1;
+    if (availableNearby === 0) return max;
+    const ratio = pendingNearby / availableNearby;
+    if (ratio <= 1) return 1;
+    const t = Math.min(1, (ratio - 1) / 2); // ratio 1→3 se mapea linealmente a 0→1
+    return 1 + t * (max - 1);
+  }
+
   /**
    * Tarifa sugerida: base + distancia + tiempo (con tráfico real vía Mapbox cuando hay
-   * MAPBOX_TOKEN configurado) + peso, multiplicador por prioridad, + comisión de la plataforma.
+   * MAPBOX_TOKEN configurado) + peso, multiplicador por prioridad, multiplicador por demanda
+   * real (repartidores disponibles vs. pedidos activos cerca de la recogida), + comisión.
    */
   async priceEstimate(query: PriceEstimateQueryDto) {
     const cfg = await this.ensurePriceConfig();
-    const route = await this.directions.route(
-      { lat: query.pickupLat, lng: query.pickupLng },
-      { lat: query.dropoffLat, lng: query.dropoffLng }
-    );
+    const pickup = { lat: query.pickupLat, lng: query.pickupLng };
+    const [route, availableNearby, pendingNearby] = await Promise.all([
+      this.directions.route(pickup, { lat: query.dropoffLat, lng: query.dropoffLng }),
+      this.couriers.countAvailableNearby(pickup, MatchingDefaults.RADIUS_METERS),
+      this.countPendingNearby(pickup, MatchingDefaults.RADIUS_METERS),
+    ]);
 
     const base = Number(cfg.base);
     const perKm = Number(cfg.perKm);
@@ -272,8 +305,9 @@ export class JobsService {
     const priority = query.priority ?? 'standard';
     const priorityMultiplier =
       priority === 'express' ? Number(cfg.expressMultiplier) : priority === 'same_day' ? Number(cfg.sameDayMultiplier) : 1;
+    const demandMultiplier = this.computeDemandMultiplier(availableNearby, pendingNearby, Number(cfg.demandMultiplierMax));
 
-    const subtotal = (base + distanceCost + timeCost + weightCost) * priorityMultiplier;
+    const subtotal = (base + distanceCost + timeCost + weightCost) * priorityMultiplier * demandMultiplier;
     const commission = subtotal * (commissionPercent / 100);
     const total = subtotal + commission;
 
@@ -282,12 +316,14 @@ export class JobsService {
       distanceMeters: route.distanceMeters,
       durationSeconds: route.durationSeconds,
       trafficAware: route.trafficAware,
+      demand: { availableCouriersNearby: availableNearby, activeJobsNearby: pendingNearby },
       breakdown: {
         base,
         distance: Math.round(distanceCost),
         time: Math.round(timeCost),
         weight: Math.round(weightCost),
         priorityMultiplier,
+        demandMultiplier,
         subtotal: Math.round(subtotal),
         commission: Math.round(commission),
       },

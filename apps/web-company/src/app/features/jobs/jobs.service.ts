@@ -73,15 +73,8 @@ export class JobsService {
       distanceMeters: number;
       durationSeconds: number;
       trafficAware: boolean;
-      breakdown: {
-        base: number;
-        distance: number;
-        time: number;
-        weight: number;
-        priorityMultiplier: number;
-        subtotal: number;
-        commission: number;
-      };
+      demand: { availableCouriersNearby: number; activeJobsNearby: number };
+      breakdown: JobPriceBreakdown;
     }>('jobs/price-estimate', params as Record<string, string | number>);
   }
 }

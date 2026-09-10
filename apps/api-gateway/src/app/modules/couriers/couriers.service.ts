@@ -415,4 +415,16 @@ export class CouriersService {
       .limit(limit)
       .getMany();
   }
+
+  /** Repartidores disponibles cerca de un punto, sin el límite de candidatos del matching. */
+  countAvailableNearby(center: GeoPoint, radiusMeters = MatchingDefaults.RADIUS_METERS): Promise<number> {
+    return this.repo
+      .createQueryBuilder('courier')
+      .where('courier.status = :status', { status: CourierStatus.AVAILABLE })
+      .andWhere(
+        'ST_DWithin(courier.last_location, ST_SetSRID(ST_MakePoint(:lng, :lat), 4326)::geography, :radius)',
+        { lng: center.lng, lat: center.lat, radius: radiusMeters }
+      )
+      .getCount();
+  }
 }

@@ -25,4 +25,8 @@ export class PriceConfigEntity {
 
   @Column({ name: 'commission_percent', type: 'decimal', precision: 5, scale: 2, default: 20 })
   commissionPercent!: number;
+
+  /** Multiplicador máximo aplicado cuando hay muy pocos repartidores disponibles frente a la demanda cercana. */
+  @Column({ name: 'demand_multiplier_max', type: 'decimal', precision: 5, scale: 2, default: 1.3 })
+  demandMultiplierMax!: number;
 }

@@ -125,6 +125,9 @@ import { JobsService } from './jobs.service';
               @if (b.priorityMultiplier !== 1) {
                 <div class="cost"><span>Prioridad</span><span>×{{ b.priorityMultiplier }}</span></div>
               }
+              @if (b.demandMultiplier && b.demandMultiplier !== 1) {
+                <div class="cost"><span>Demanda alta en la zona</span><span>×{{ b.demandMultiplier }}</span></div>
+              }
               <div class="cost"><span>Comisión plataforma</span><span>{{ b.commission | number: '1.0-0' }} COP</span></div>
             }
             <div class="cost cost--total"><span>Total</span><span>{{ job()?.price | number: '1.0-0' }} COP</span></div>
