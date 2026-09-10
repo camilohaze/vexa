@@ -1,8 +1,8 @@
-import { IsBoolean, IsDateString, IsEmail, IsIn, IsNumber, IsOptional, IsString } from 'class-validator';
+import { IsBoolean, IsDateString, IsEmail, IsIn, IsNumber, IsOptional, IsString, ValidateIf } from 'class-validator';
 
 export class UpdateCompanySettingsDto {
+  @ValidateIf((o) => !!o.adminEmail)
   @IsEmail()
-  @IsOptional()
   adminEmail?: string;
 
   @IsBoolean()
@@ -16,6 +16,10 @@ export class UpdateCompanySettingsDto {
   @IsIn(['COP', 'USD'])
   @IsOptional()
   currency?: 'COP' | 'USD';
+
+  @IsString()
+  @IsOptional()
+  timezone?: string;
 
   @IsString()
   @IsOptional()

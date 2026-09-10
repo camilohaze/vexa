@@ -1,4 +1,3 @@
-import { CurrencyPipe, DatePipe } from '@angular/common';
 import { ChangeDetectionStrategy, Component, inject, signal } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule } from '@angular/forms';
 import { MatButtonModule } from '@angular/material/button';
@@ -11,22 +10,19 @@ import { ApiService } from '../../core/api/api.service';
 
 interface CompanySettings {
   name: string;
+  taxId?: string | null;
   address?: string | null;
   adminEmail?: string | null;
   twoFactor: boolean;
   language: 'es' | 'en';
   currency: 'COP' | 'USD';
-  plan?: string | null;
-  planPrice?: number | null;
-  renewalAt?: string | null;
+  timezone: string;
 }
 
 /** Figma: web-company-settings */
 @Component({
   selector: 'vexa-settings',
   imports: [
-    CurrencyPipe,
-    DatePipe,
     MatButtonModule,
     MatFormFieldModule,
     MatInputModule,
@@ -40,16 +36,18 @@ interface CompanySettings {
       <form class="vexa-card section" [formGroup]="form" (ngSubmit)="save()">
         <div class="section__head">
           <h2 class="vexa-h5">Perfil de empresa</h2>
-          <p class="section__hint">Administra la identidad de tu cuenta Vexa</p>
+          <p class="section__hint">Administra las credenciales de tu cuenta Vexa y los datos de identificación de tu empresa</p>
         </div>
         <div class="grid-2">
-          <mat-form-field appearance="outline"><mat-label>Nombre de la empresa</mat-label>
+          <mat-form-field appearance="outline"><mat-label>Nombre registrado de la empresa</mat-label>
             <input matInput formControlName="name" /></mat-form-field>
-          <mat-form-field appearance="outline"><mat-label>Correo de facturación</mat-label>
+          <mat-form-field appearance="outline"><mat-label>ID de empresa Vexa (solo lectura)</mat-label>
+            <input matInput [value]="settings()?.taxId ?? '—'" disabled /></mat-form-field>
+          <mat-form-field appearance="outline"><mat-label>Correo de notificación de facturación</mat-label>
             <input matInput formControlName="adminEmail" /></mat-form-field>
+          <mat-form-field appearance="outline"><mat-label>Dirección física (sede)</mat-label>
+            <input matInput formControlName="address" /></mat-form-field>
         </div>
-        <mat-form-field appearance="outline" class="full"><mat-label>Dirección corporativa</mat-label>
-          <input matInput formControlName="address" /></mat-form-field>
         <button mat-flat-button type="submit">Guardar cambios</button>
       </form>
 
@@ -57,7 +55,7 @@ interface CompanySettings {
         <h2 class="vexa-h5">Cuenta y seguridad</h2>
         <div class="option-row">
           <div>
-            <strong>Autenticación en dos pasos</strong>
+            <strong>Autenticación en dos pasos (2FA)</strong>
             <p class="section__hint">Protege tu cuenta con un código de verificación adicional</p>
           </div>
           <mat-slide-toggle [formControl]="account.controls.twoFactor" />
@@ -65,7 +63,7 @@ interface CompanySettings {
         <hr />
         <div class="option-row">
           <div>
-            <strong>Contraseña</strong>
+            <strong>Contraseña maestra</strong>
             <p class="section__hint">Recomendamos cambiarla cada 90 días</p>
           </div>
           <button mat-stroked-button type="button">Cambiar contraseña</button>
@@ -74,7 +72,7 @@ interface CompanySettings {
 
       <div class="vexa-card section">
         <h2 class="vexa-h5">Preferencias del sistema</h2>
-        <div class="grid-2">
+        <div class="grid-3">
           <mat-form-field appearance="outline">
             <mat-label>Idioma</mat-label>
             <mat-select [formControl]="prefs.controls.language">
@@ -89,20 +87,15 @@ interface CompanySettings {
               <mat-option value="USD">USD ($)</mat-option>
             </mat-select>
           </mat-form-field>
+          <mat-form-field appearance="outline">
+            <mat-label>Zona horaria</mat-label>
+            <mat-select [formControl]="prefs.controls.timezone">
+              @for (tz of timezones; track tz.value) {
+                <mat-option [value]="tz.value">{{ tz.label }}</mat-option>
+              }
+            </mat-select>
+          </mat-form-field>
         </div>
-      </div>
-
-      <div class="vexa-card section">
-        <h2 class="vexa-h5">Suscripción</h2>
-        <div class="plan-row">
-          <strong>{{ settings()?.plan ?? '—' }}</strong>
-          <span class="vexa-pill vexa-pill--info">Activo</span>
-        </div>
-        <p class="section__hint">
-          Renueva el {{ (settings()?.renewalAt | date: 'mediumDate') ?? '—' }} ·
-          {{ settings()?.planPrice ?? 0 | currency: 'USD':'symbol-narrow':'1.0-0' }}/mes
-        </p>
-        <button mat-stroked-button type="button">Mejorar suscripción</button>
       </div>
     </div>
   `,
@@ -112,11 +105,10 @@ interface CompanySettings {
     .section__head { display: flex; flex-direction: column; gap: 4px; }
     .section__hint { margin: 0; font-size: 13px; color: var(--vexa-gray-400); }
     .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
-    .full { width: 100%; }
+    .grid-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; }
     hr { border: none; border-top: 1px solid var(--vexa-gray-200); margin: 0; }
     .option-row { display: flex; align-items: center; justify-content: space-between; gap: 16px; }
     .option-row strong { font-size: 15px; color: var(--vexa-gray-900); }
-    .plan-row { display: flex; align-items: center; gap: 10px; }
   `,
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
@@ -138,15 +130,24 @@ export class Settings {
   protected readonly prefs = this.fb.nonNullable.group({
     language: 'es' as 'es' | 'en',
     currency: 'COP' as 'COP' | 'USD',
+    timezone: 'America/Bogota',
   });
   protected readonly settings = signal<CompanySettings | null>(null);
+
+  protected readonly timezones = [
+    { value: 'America/Bogota', label: 'Bogotá (COT, UTC-5)' },
+    { value: 'America/Mexico_City', label: 'Ciudad de México (CST, UTC-6)' },
+    { value: 'America/New_York', label: 'Este de EE. UU. (ET)' },
+    { value: 'America/Los_Angeles', label: 'Pacífico de EE. UU. (PT)' },
+    { value: 'UTC', label: 'UTC' },
+  ];
 
   constructor() {
     this.api.get<CompanySettings>('companies/me/settings').subscribe((s) => {
       this.settings.set(s);
       this.form.patchValue({ name: s.name, address: s.address ?? '', adminEmail: s.adminEmail ?? '' });
       this.account.patchValue({ twoFactor: s.twoFactor });
-      this.prefs.patchValue({ language: s.language, currency: s.currency });
+      this.prefs.patchValue({ language: s.language, currency: s.currency, timezone: s.timezone });
     });
   }
 
@@ -157,7 +158,7 @@ export class Settings {
       ...this.prefs.getRawValue(),
     } as CompanySettings;
     this.api
-      .patch<CompanySettings>('companies/me/settings', dto)
+      .put<CompanySettings>('companies/me/settings', dto)
       .subscribe(() => this.snack.open('Configuración guardada', undefined, { duration: 2500 }));
   }
 }

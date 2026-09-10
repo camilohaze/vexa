@@ -187,7 +187,7 @@ export class CompaniesService {
       settings.renewalAt = new Date(Date.now() + 30 * 86400000);
     }
     await this.settingsRepo.save(settings);
-    return { ...settings, name: company.name };
+    return { ...settings, name: company.name, taxId: company.taxId };
   }
 
   async updateSettings(user: AuthenticatedUser, dto: UpdateCompanySettingsDto) {
@@ -198,6 +198,6 @@ export class CompaniesService {
     }
     Object.assign(settings, dto);
     await this.settingsRepo.save(settings);
-    return { ...settings, name: company.name };
+    return { ...settings, name: company.name, taxId: company.taxId };
   }
 }

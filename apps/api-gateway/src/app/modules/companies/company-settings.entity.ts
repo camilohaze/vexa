@@ -22,6 +22,9 @@ export class CompanySettingsEntity {
   @Column({ default: 'COP' })
   currency!: string;
 
+  @Column({ default: 'America/Bogota' })
+  timezone!: string;
+
   @Column({ type: 'varchar', nullable: true })
   address?: string | null;
 
