@@ -1,0 +1,23 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "api-gateway",
+      "runtimeExecutable": "npx",
+      "runtimeArgs": ["nx", "serve", "api-gateway"],
+      "port": 3000
+    },
+    {
+      "name": "web-company",
+      "runtimeExecutable": "npx",
+      "runtimeArgs": ["nx", "serve-static", "web-company"],
+      "port": 4200
+    },
+    {
+      "name": "web-landing",
+      "runtimeExecutable": "npx",
+      "runtimeArgs": ["nx", "serve-static", "web-landing"],
+      "port": 4400
+    }
+  ]
+}
