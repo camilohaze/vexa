@@ -13,7 +13,7 @@ import { CourierEarnings, CourierTransaction, CouriersService, PayoutMethod } fr
     <div class="top-row">
       <div class="balance-card">
         <span class="balance-card__label">GANADO ESTE MES</span>
-        <strong class="balance-card__value">\${{ earnings()?.month ?? 0 | number: '1.2-2':'es-CO' }}</strong>
+        <strong class="balance-card__value">\${{ earnings()?.month ?? 0 | number: '1.2-2' }}</strong>
         <div class="balance-card__note">
           <mat-icon>check_circle</mat-icon>
           <span>{{ earnings()?.completed ?? 0 }} entregas completadas este período.</span>
@@ -50,9 +50,9 @@ import { CourierEarnings, CourierTransaction, CouriersService, PayoutMethod } fr
       </div>
       @for (tx of transactions(); track tx.id) {
         <div class="row">
-          <span class="col col--date">{{ tx.at | date: 'mediumDate':'':'es-CO' }}</span>
+          <span class="col col--date">{{ tx.at | date: 'mediumDate' }}</span>
           <span class="col col--desc">{{ tx.title }}</span>
-          <span class="col col--amount">+\${{ tx.amount | number: '1.2-2':'es-CO' }}</span>
+          <span class="col col--amount">+\${{ tx.amount | number: '1.2-2' }}</span>
         </div>
       } @empty {
         <p class="empty">Aún no tienes pagos registrados.</p>

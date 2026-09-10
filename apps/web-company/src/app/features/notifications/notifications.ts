@@ -60,7 +60,7 @@ function categoryOf(icon: string): Category {
             </div>
             <p class="item__text">{{ n.body }}</p>
           </div>
-          <span class="item__when">{{ n.when | date: 'short':'':'es-CO' }}</span>
+          <span class="item__when">{{ n.when | date: 'short' }}</span>
         </div>
       } @empty {
         <p class="empty">Sin notificaciones.</p>

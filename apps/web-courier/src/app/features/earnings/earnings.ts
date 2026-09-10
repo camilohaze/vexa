@@ -27,13 +27,13 @@ const DAY_LABELS = ['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom'];
     <div class="vexa-card headline-card">
       <div class="headline-card__left">
         <span class="vexa-overline">Total {{ periodLabel() }}</span>
-        <strong class="headline-card__value">\${{ periodValue() | number: '1.2-2':'es-CO' }}</strong>
+        <strong class="headline-card__value">\${{ periodValue() | number: '1.2-2' }}</strong>
         <a routerLink="/wallet" class="withdraw-btn">Retirar fondos</a>
       </div>
       <div class="headline-card__meta">
         <div class="meta-row">
           <span>Promedio por entrega</span>
-          <strong>\${{ avgPerJob() | number: '1.2-2':'es-CO' }}</strong>
+          <strong>\${{ avgPerJob() | number: '1.2-2' }}</strong>
         </div>
         <hr />
         <div class="meta-row">
@@ -64,7 +64,7 @@ const DAY_LABELS = ['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom'];
             <strong>{{ row[0] }}</strong>
             <span class="breakdown-row__count">{{ row[2] }} entregas</span>
           </div>
-          <strong>\${{ row[1] | number: '1.2-2':'es-CO' }}</strong>
+          <strong>\${{ row[1] | number: '1.2-2' }}</strong>
         </div>
       } @empty {
         <p class="empty">Aún no hay ganancias registradas.</p>

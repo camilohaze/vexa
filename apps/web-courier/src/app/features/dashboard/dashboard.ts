@@ -29,7 +29,7 @@ import { JobsService } from '../jobs/jobs.service';
     <div class="earnings vexa-card">
       <div class="earnings__left">
         <span class="vexa-overline">Ganancias de hoy</span>
-        <span class="earnings__value">\${{ earnings()?.today ?? 0 | number: '1.2-2':'es-CO' }}</span>
+        <span class="earnings__value">\${{ earnings()?.today ?? 0 | number: '1.2-2' }}</span>
       </div>
       <div class="earnings__note">
         <mat-icon>smartphone</mat-icon>
@@ -65,7 +65,7 @@ import { JobsService } from '../jobs/jobs.service';
               }
             </div>
             <span class="vexa-pill vexa-pill--success">
-              Entregado (+\${{ job.price | number: '1.2-2':'es-CO' }})
+              Entregado (+\${{ job.price | number: '1.2-2' }})
             </span>
             <span class="activity__time">{{ timeAgo(job.completedAt) }}</span>
           </div>

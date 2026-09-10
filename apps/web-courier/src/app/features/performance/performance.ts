@@ -51,7 +51,7 @@ const STAR_LABELS = ['5 estrellas', '4 estrellas', '3 estrellas', '2 estrellas',
             <vexa-rating-stars [value]="r.stars" />
           </div>
           <p>{{ r.text }}</p>
-          <small class="muted">{{ r.when | date: 'medium':'':'es-CO' }}</small>
+          <small class="muted">{{ r.when | date: 'medium' }}</small>
         </div>
       } @empty {
         <p class="muted">Aún no tienes reseñas.</p>

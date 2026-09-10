@@ -31,7 +31,7 @@ const STEP_LABEL: Record<string, string> = {
           <h1>{{ auth.user()?.fullName }}</h1>
           <div class="hero__meta">
             <span class="badge">Socio Vexa</span>
-            <span class="muted">Miembro desde {{ auth.user()?.createdAt | date: 'MMM yyyy':'':'es-CO' }}</span>
+            <span class="muted">Miembro desde {{ auth.user()?.createdAt | date: 'MMM yyyy' }}</span>
           </div>
         </div>
       </div>

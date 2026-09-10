@@ -11,7 +11,7 @@ import { ApiService } from '../../core/api/api.service';
     <div class="top-grid">
       <div class="balance-card">
         <span class="balance-card__label">Gastado en envíos</span>
-        <strong class="balance-card__value">\${{ wallet()?.spent ?? 0 | number: '1.2-2':'es-CO' }}</strong>
+        <strong class="balance-card__value">\${{ wallet()?.spent ?? 0 | number: '1.2-2' }}</strong>
         <div class="balance-card__actions">
           <button type="button" class="btn btn--white">Recargar saldo</button>
           <a routerLink="/wallet/methods" class="btn btn--ghost">Métodos de pago</a>
@@ -23,11 +23,11 @@ import { ApiService } from '../../core/api/api.service';
         <div class="summary-card__metrics">
           <div class="metric">
             <span class="metric__label">Pendiente</span>
-            <strong class="metric__value">\${{ wallet()?.pending ?? 0 | number: '1.2-2':'es-CO' }}</strong>
+            <strong class="metric__value">\${{ wallet()?.pending ?? 0 | number: '1.2-2' }}</strong>
           </div>
           <div class="metric">
             <span class="metric__label">Reembolsado</span>
-            <strong class="metric__value">\${{ wallet()?.refunded ?? 0 | number: '1.2-2':'es-CO' }}</strong>
+            <strong class="metric__value">\${{ wallet()?.refunded ?? 0 | number: '1.2-2' }}</strong>
           </div>
         </div>
       </div>
@@ -44,7 +44,7 @@ import { ApiService } from '../../core/api/api.service';
         </div>
         @for (tx of txs(); track tx.id) {
           <div class="row">
-            <span class="col col--date">{{ tx.at | date: 'mediumDate':'':'es-CO' }}</span>
+            <span class="col col--date">{{ tx.at | date: 'mediumDate' }}</span>
             <span class="col col--desc">{{ tx.title }}</span>
             <span class="col col--type">
               <span class="type-badge" [class.type-badge--credit]="tx.amount >= 0">
@@ -52,7 +52,7 @@ import { ApiService } from '../../core/api/api.service';
               </span>
             </span>
             <span class="col col--amount" [class.col--amount-credit]="tx.amount >= 0">
-              {{ tx.amount >= 0 ? '+' : '-' }}\${{ (tx.amount < 0 ? -tx.amount : tx.amount) | number: '1.2-2':'es-CO' }}
+              {{ tx.amount >= 0 ? '+' : '-' }}\${{ (tx.amount < 0 ? -tx.amount : tx.amount) | number: '1.2-2' }}
             </span>
           </div>
         } @empty {

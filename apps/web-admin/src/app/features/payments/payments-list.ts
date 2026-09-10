@@ -19,12 +19,12 @@ import { ApiService } from '../../core/api/api.service';
     <section class="stats">
       <div class="stat vexa-card">
         <span>Volumen total de la plataforma</span>
-        <strong>{{ volume() | number:'1.0-0':'es-CO' }} COP</strong>
+        <strong>{{ volume() | number:'1.0-0' }} COP</strong>
         <small class="up">+14.3%</small>
       </div>
       <div class="stat vexa-card">
         <span>Pagos pendientes</span>
-        <strong>{{ pending() | number:'1.0-0':'es-CO' }} COP</strong>
+        <strong>{{ pending() | number:'1.0-0' }} COP</strong>
         <small class="muted">Próx. lote</small>
       </div>
       <div class="stat vexa-card">

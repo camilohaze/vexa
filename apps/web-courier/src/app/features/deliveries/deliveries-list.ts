@@ -54,11 +54,11 @@ const PROGRESS: Record<string, number> = {
       @for (job of filtered(); track job.id) {
         <div class="row">
           <span class="col col--id">#{{ job.id.slice(0, 8).toUpperCase() }}</span>
-          <span class="col col--date">{{ job.createdAt | date: 'short':'':'es-CO' }}</span>
+          <span class="col col--date">{{ job.createdAt | date: 'short' }}</span>
           <span class="col col--route">{{ job.pickup.city }} → {{ job.dropoff.city }}</span>
           <span class="col col--detail">{{ job.notes || '—' }}</span>
           <span class="col col--status"><vexa-status-chip [status]="job.status" /></span>
-          <span class="col col--earnings">\${{ job.price | number: '1.2-2':'es-CO' }}</span>
+          <span class="col col--earnings">\${{ job.price | number: '1.2-2' }}</span>
           <span class="col col--progress">
             <span class="progress">
               <span class="progress__bar" [style.width.%]="PROGRESS[job.status] ?? 0"></span>
