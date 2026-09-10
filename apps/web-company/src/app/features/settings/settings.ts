@@ -100,7 +100,7 @@ interface CompanySettings {
     </div>
   `,
   styles: `
-    .settings { display: flex; flex-direction: column; gap: 24px; max-width: 720px; }
+    .settings { display: flex; flex-direction: column; gap: 24px; }
     .section { display: flex; flex-direction: column; gap: 20px; padding: 28px; }
     .section__head { display: flex; flex-direction: column; gap: 4px; }
     .section__hint { margin: 0; font-size: 13px; color: var(--vexa-gray-400); }
