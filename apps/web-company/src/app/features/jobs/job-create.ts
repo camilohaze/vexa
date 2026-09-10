@@ -475,6 +475,7 @@ export class JobCreate {
         refrigerated: v.refrigerated,
         priority: v.priority as 'standard' | 'express' | 'same_day',
         priceBreakdown: this.estimate()?.breakdown,
+        durationSeconds: this.estimate()?.durationSeconds,
       })
       .subscribe({
         next: (job) => {

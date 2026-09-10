@@ -67,6 +67,10 @@ export class JobEntity {
   @Column({ name: 'distance_meters', type: 'int', nullable: true })
   distanceMeters?: number | null;
 
+  /** Duración estimada (segundos) según Mapbox al momento de cotizar; base para el ETA sin mapa en vivo. */
+  @Column({ name: 'duration_seconds', type: 'int', nullable: true })
+  durationSeconds?: number | null;
+
   @Column({ type: 'text', nullable: true })
   notes?: string | null;
 

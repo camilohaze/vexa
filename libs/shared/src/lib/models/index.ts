@@ -77,6 +77,7 @@ export interface Job {
   dropoff: Address;
   price: number;
   distanceMeters?: number;
+  durationSeconds?: number;
   notes?: string;
   packageType?: string;
   weightKg?: number;

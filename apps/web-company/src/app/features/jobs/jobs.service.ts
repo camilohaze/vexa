@@ -15,6 +15,7 @@ export interface CreateJobPayload {
   refrigerated?: boolean;
   priority?: 'standard' | 'express' | 'same_day';
   priceBreakdown?: JobPriceBreakdown;
+  durationSeconds?: number;
 }
 
 export interface DeliveryHistoryStats {

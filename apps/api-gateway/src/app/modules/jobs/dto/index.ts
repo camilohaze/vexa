@@ -130,6 +130,12 @@ export class CreateJobDto {
   @IsOptional()
   @IsObject()
   priceBreakdown?: JobPriceBreakdown;
+
+  @ApiPropertyOptional({ description: 'Duración estimada (segundos) devuelta por /jobs/price-estimate al momento de publicar' })
+  @IsOptional()
+  @Type(() => Number)
+  @IsNumber()
+  durationSeconds?: number;
 }
 
 export class ListJobsQueryDto {

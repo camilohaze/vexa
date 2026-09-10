@@ -1,5 +1,6 @@
 import { DecimalPipe } from '@angular/common';
-import { ChangeDetectionStrategy, Component, computed, inject, input, OnInit, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, DestroyRef, inject, input, OnInit, signal } from '@angular/core';
+import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { RouterLink } from '@angular/router';
 import { Map as VexaMap, MapMarker } from '@vexa/maps';
@@ -12,7 +13,7 @@ import { JobsService } from './jobs.service';
 /** Figma: web-delivery-tracking */
 @Component({
   selector: 'vexa-job-tracking',
-  imports: [DecimalPipe, MatIconModule, RouterLink, StatusChip, Timeline, VexaMap],
+  imports: [DecimalPipe, MatButtonModule, MatIconModule, RouterLink, StatusChip, Timeline, VexaMap],
   template: `
     <div class="tracking">
       <div class="telemetry">
@@ -137,7 +138,24 @@ import { JobsService } from './jobs.service';
       </div>
 
       <div class="vexa-card map-panel">
-        <vexa-map [markers]="markers()" [center]="center()" />
+        @if (showMap()) {
+          <vexa-map [markers]="markers()" [center]="center()" />
+          <button mat-stroked-button type="button" class="map-toggle" (click)="showMap.set(false)">
+            <mat-icon>visibility_off</mat-icon> Ocultar mapa
+          </button>
+        } @else {
+          <div class="map-placeholder">
+            <mat-icon class="map-placeholder__icon">near_me</mat-icon>
+            <p class="vexa-h5">{{ etaLabel() }}</p>
+            <p class="muted">
+              El mapa en vivo está desactivado para reducir el consumo de Mapbox — se calcula el tiempo
+              restante con la duración estimada al confirmar la recogida.
+            </p>
+            <button mat-flat-button type="button" (click)="showMap.set(true)">
+              <mat-icon>map</mat-icon> Ver en mapa en vivo
+            </button>
+          </div>
+        }
         @if (job(); as j) {
           <div class="map-address-panel">
             <div class="route-node">
@@ -217,6 +235,12 @@ import { JobsService } from './jobs.service';
 
     .map-panel { flex: 1 1 auto; min-width: 0; height: 600px; position: relative; padding: 0; overflow: hidden; }
     .map-panel vexa-map { display: block; height: 100%; }
+    .map-toggle { position: absolute; top: 16px; right: 16px; background: #fff; }
+    .map-placeholder {
+      height: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center;
+      gap: 8px; padding: 32px; text-align: center; background: var(--vexa-gray-50);
+    }
+    .map-placeholder__icon { font-size: 40px; width: 40px; height: 40px; color: var(--vexa-primary-600); }
     .map-address-panel {
       position: absolute; left: 24px; bottom: 24px; width: 320px;
       background: #fff; border: 1px solid var(--vexa-gray-200); border-radius: var(--vexa-radius-md);
@@ -248,6 +272,11 @@ export class JobTracking implements OnInit {
   private readonly jobs = inject(JobsService);
   private readonly realtime = inject(RealtimeService);
   private readonly api = inject(ApiService);
+  private readonly destroyRef = inject(DestroyRef);
+
+  /** Mapa en vivo apagado por defecto: cada carga es una "map load" facturable de Mapbox. */
+  protected readonly showMap = signal(false);
+  private readonly nowTick = signal(Date.now());
 
   protected readonly center = computed(() => this.courierAt() ?? this.job()?.pickup ?? { lat: 4.711, lng: -74.0721 });
   protected readonly markers = computed<MapMarker[]>(() => {
@@ -271,12 +300,36 @@ export class JobTracking implements OnInit {
     [JobStatus.DELIVERED]: 100,
     [JobStatus.CANCELLED]: 100,
   };
-  protected readonly progress = computed(() => JobTracking.PROGRESS[this.job()?.status ?? ''] ?? 0);
+  /** Segundos restantes estimados desde la recogida, usando la duración cotizada por Mapbox — sin necesitar mapa en vivo. */
+  private readonly remainingSeconds = computed(() => {
+    const j = this.job();
+    if (!j?.pickedUpAt || !j.durationSeconds) return null;
+    this.nowTick();
+    const elapsed = (Date.now() - new Date(j.pickedUpAt).getTime()) / 1000;
+    return j.durationSeconds - elapsed;
+  });
+
+  protected readonly progress = computed(() => {
+    const j = this.job();
+    if (!j) return 0;
+    const remaining = this.remainingSeconds();
+    if ((j.status === JobStatus.PICKED_UP || j.status === JobStatus.IN_TRANSIT) && remaining !== null && j.durationSeconds) {
+      const ratio = Math.min(1, Math.max(0, 1 - remaining / j.durationSeconds));
+      return Math.round(60 + ratio * 35); // 60% al recoger → hasta 95% mientras se acerca al tiempo estimado
+    }
+    return JobTracking.PROGRESS[j.status] ?? 0;
+  });
+
   protected readonly etaLabel = computed(() => {
     const j = this.job();
     if (!j) return '—';
     if (j.status === JobStatus.DELIVERED && j.completedAt) return new Date(j.completedAt).toLocaleString('es-CO');
-    return 'En camino';
+    if (j.status === JobStatus.CANCELLED) return 'Cancelado';
+    const remaining = this.remainingSeconds();
+    if (remaining === null) return 'Pendiente de recogida';
+    if (remaining <= 0) return 'Llegando en cualquier momento';
+    const minutes = Math.round(remaining / 60);
+    return minutes < 1 ? 'Llegando en cualquier momento' : `Llega en ~${minutes} min`;
   });
 
   protected readonly timeline = computed<TimelineStep[]>(() => {
@@ -285,7 +338,7 @@ export class JobTracking implements OnInit {
     const order = [JobStatus.ACCEPTED, JobStatus.PICKED_UP, JobStatus.IN_TRANSIT, JobStatus.DELIVERED];
     const idx = order.indexOf(j.status);
     const labels = ['Aceptado', 'Recogido', 'En tránsito', 'Entregado'];
-    const times = [j.acceptedAt, null, null, j.completedAt];
+    const times = [j.acceptedAt, j.pickedUpAt, null, j.completedAt];
     return labels.map((label, i) => ({
       title: label,
       state: (j.status === JobStatus.CANCELLED || j.status === JobStatus.DELIVERED || i < idx
@@ -309,6 +362,9 @@ export class JobTracking implements OnInit {
     this.realtime.on(SocketEvents.JOB_ACCEPTED).subscribe(() => this.refresh());
     this.realtime.on(SocketEvents.JOB_COMPLETED).subscribe(() => this.refresh());
     this.realtime.on(SocketEvents.JOB_CANCELLED).subscribe(() => this.refresh());
+
+    const timer = setInterval(() => this.nowTick.set(Date.now()), 30_000);
+    this.destroyRef.onDestroy(() => clearInterval(timer));
   }
 
   private loadCourierProfile(courierId: string) {

@@ -81,6 +81,7 @@ export class JobsService {
       refrigerated: dto.refrigerated ?? false,
       priority: dto.priority ?? 'standard',
       priceBreakdown: dto.priceBreakdown,
+      durationSeconds: dto.durationSeconds,
       status: JobStatus.PENDING,
     });
     const saved = await this.repo.save(job);
