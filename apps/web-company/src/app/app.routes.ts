@@ -18,6 +18,14 @@ export const appRoutes: Route[] = [
         loadComponent: () => import('./features/jobs/tracking-overview').then((m) => m.TrackingOverview),
       },
       {
+        path: 'tracking/:id',
+        loadComponent: () => import('./features/jobs/job-tracking').then((m) => m.JobTracking),
+      },
+      {
+        path: 'tracking/:id/rate',
+        loadComponent: () => import('./features/couriers/rate-courier').then((m) => m.RateCourier),
+      },
+      {
         path: 'jobs/:id',
         loadComponent: () => import('./features/jobs/job-tracking').then((m) => m.JobTracking),
       },

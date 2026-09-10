@@ -36,7 +36,7 @@ export class TrackingOverview {
     this.jobs.list({ pageSize: 50 }).subscribe((page) => {
       const active = PRIORITY.map((status) => page.items.find((j) => j.status === status)).find(Boolean);
       if (active) {
-        this.router.navigate(['..', 'jobs', active.id], { relativeTo: this.route, replaceUrl: true });
+        this.router.navigate(['..', 'tracking', active.id], { relativeTo: this.route, replaceUrl: true });
       } else {
         this.empty.set(true);
       }
