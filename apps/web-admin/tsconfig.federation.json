@@ -1,0 +1,12 @@
+{
+  "extends": "./tsconfig.app.json",
+  "files": [
+    "../../libs/shared/src/index.ts",
+    "../../libs/ui/src/index.ts",
+    "../../libs/maps/src/index.ts",
+    "src/app/app.routes.ts"
+  ],
+  "include": [
+    "src/**/*.d.ts"
+  ]
+}

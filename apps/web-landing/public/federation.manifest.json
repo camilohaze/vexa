@@ -1,0 +1,5 @@
+{
+	"webCompany": "http://localhost:4200/remoteEntry.json",
+	"webAdmin": "http://localhost:4300/remoteEntry.json",
+	"webCourier": "http://localhost:4401/remoteEntry.json"
+}

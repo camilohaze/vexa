@@ -44,8 +44,6 @@ export class Login {
   protected readonly auth = inject(AuthStore);
   protected readonly providers = [
     { id: AuthProvider.GOOGLE, label: 'Google', icon: 'account_circle' },
-    { id: AuthProvider.MICROSOFT, label: 'Microsoft', icon: 'window' },
     { id: AuthProvider.APPLE, label: 'Apple', icon: 'phone_iphone' },
-    { id: AuthProvider.FACEBOOK, label: 'Facebook', icon: 'facebook' },
   ];
 }

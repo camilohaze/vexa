@@ -17,7 +17,7 @@ import { UsersService } from '../users/users.service';
 import { UserEntity } from '../users/user.entity';
 import { RegisterDto } from './dto/credentials.dto';
 
-export type AuthClient = 'company' | 'admin' | 'mobile';
+export type AuthClient = 'company' | 'admin' | 'mobile' | 'courier';
 
 const OTP_TTL_SECONDS = 10 * 60;
 
@@ -34,7 +34,7 @@ export class AuthService {
   ) {}
 
   async loginWithOAuth(profile: OAuthProfile, client: AuthClient): Promise<AuthTokens> {
-    const defaultRole = client === 'mobile' ? UserRole.COURIER : UserRole.COMPANY;
+    const defaultRole = client === 'mobile' || client === 'courier' ? UserRole.COURIER : UserRole.COMPANY;
     const user = await this.users.upsertFromOAuth(profile, defaultRole);
     return this.issueTokens(user);
   }
@@ -111,10 +111,15 @@ export class AuthService {
   }
 
   buildRedirectUrl(client: AuthClient, tokens: AuthTokens): string {
+    // company/admin/courier are all Module Federation remotes mounted under one shell —
+    // the shell (web-landing) is the only app with a public /auth/callback route; it reads
+    // the role from the fetched user and routes internally to /admin, /company, or /courier.
+    const webShellCallback = `${this.config.get('WEB_LANDING_URL')}/auth/callback`;
     const base: Record<AuthClient, string> = {
-      company: `${this.config.get('WEB_COMPANY_URL')}/auth/callback`,
-      admin: `${this.config.get('WEB_ADMIN_URL')}/auth/callback`,
+      company: webShellCallback,
+      admin: webShellCallback,
       mobile: this.config.get<string>('MOBILE_DEEP_LINK', 'vexa://auth/callback'),
+      courier: webShellCallback,
     };
     const params = new URLSearchParams({
       access_token: tokens.accessToken,

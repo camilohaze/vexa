@@ -4,7 +4,6 @@ import { authGuard, roleGuard } from './core/auth/auth.guard';
 import { Layout } from './layout/layout';
 
 export const appRoutes: Route[] = [
-  { path: 'auth/login', loadComponent: () => import('./features/auth/login').then((m) => m.Login) },
   { path: 'auth/callback', loadComponent: () => import('./features/auth/callback').then((m) => m.AuthCallback) },
   {
     path: '',

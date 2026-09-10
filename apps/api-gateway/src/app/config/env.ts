@@ -1,5 +1,8 @@
+import { Transform } from 'class-transformer';
 import { IsBoolean, IsOptional, IsString } from 'class-validator';
 import { BaseEnv, validateEnv } from '@vexa/core';
+
+const toBool = (value: unknown): boolean => value === 'true' || value === '1' || value === true || value === 1;
 
 export class ApiGatewayEnv extends BaseEnv {
   @IsString()
@@ -7,10 +10,12 @@ export class ApiGatewayEnv extends BaseEnv {
 
   @IsOptional()
   @IsBoolean()
+  @Transform(({ value }) => toBool(value))
   DATABASE_SSL = false;
 
   @IsOptional()
   @IsBoolean()
+  @Transform(({ value }) => toBool(value))
   DATABASE_SYNCHRONIZE = false;
 
   @IsString()
@@ -27,6 +32,10 @@ export class ApiGatewayEnv extends BaseEnv {
   @IsOptional()
   @IsString()
   OAUTH_CALLBACK_BASE_URL = 'http://localhost:3000/api/auth';
+
+  @IsOptional()
+  @IsString()
+  WEB_LANDING_URL = 'http://localhost:4400';
 
   @IsOptional()
   @IsString()
@@ -63,6 +72,10 @@ export class ApiGatewayEnv extends BaseEnv {
   @IsOptional()
   @IsString()
   R2_PUBLIC_URL?: string;
+
+  @IsOptional()
+  @IsString()
+  MAPBOX_TOKEN?: string;
 }
 
 export const validateApiGatewayEnv = validateEnv(ApiGatewayEnv);

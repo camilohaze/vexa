@@ -3,7 +3,6 @@ import { authGuard } from './core/auth/auth.guard';
 import { Layout } from './layout/layout';
 
 export const appRoutes: Route[] = [
-  { path: 'auth/login', loadComponent: () => import('./features/auth/login').then((m) => m.Login) },
   { path: 'auth/callback', loadComponent: () => import('./features/auth/callback').then((m) => m.AuthCallback) },
   {
     path: '',
@@ -14,6 +13,10 @@ export const appRoutes: Route[] = [
       { path: 'dashboard', loadComponent: () => import('./features/dashboard/dashboard').then((m) => m.Dashboard) },
       { path: 'jobs', loadComponent: () => import('./features/jobs/jobs-list').then((m) => m.JobsList) },
       { path: 'jobs/new', loadComponent: () => import('./features/jobs/job-create').then((m) => m.JobCreate) },
+      {
+        path: 'tracking',
+        loadComponent: () => import('./features/jobs/tracking-overview').then((m) => m.TrackingOverview),
+      },
       {
         path: 'jobs/:id',
         loadComponent: () => import('./features/jobs/job-tracking').then((m) => m.JobTracking),

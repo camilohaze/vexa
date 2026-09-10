@@ -5,7 +5,9 @@ import { AuthStore } from './auth.store';
 
 export const authGuard: CanActivateFn = () => {
   const store = inject(AuthStore);
-  return store.isAuthenticated() ? true : inject(Router).createUrlTree(['/auth/login']);
+  if (store.isAuthenticated()) return true;
+  inject(Router).navigateByUrl('/auth/login');
+  return false;
 };
 
 export function roleGuard(...roles: UserRole[]): CanActivateFn {
@@ -13,6 +15,7 @@ export function roleGuard(...roles: UserRole[]): CanActivateFn {
     const store = inject(AuthStore);
     const user = store.user();
     if (user && roles.includes(user.role)) return true;
-    return inject(Router).createUrlTree([store.isAuthenticated() ? '/' : '/auth/login']);
+    inject(Router).navigateByUrl('/auth/login');
+    return false;
   };
 }

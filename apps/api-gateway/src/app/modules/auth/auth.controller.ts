@@ -1,16 +1,18 @@
 import {
   Body,
   Controller,
+  ExecutionContext,
   Get,
   HttpCode,
   HttpStatus,
+  Injectable,
   Post,
   Query,
   Req,
   Res,
   UseGuards,
 } from '@nestjs/common';
-import { AuthGuard } from '@nestjs/passport';
+import { AuthGuard, IAuthModuleOptions } from '@nestjs/passport';
 import { ApiBearerAuth, ApiExcludeEndpoint, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { Request, Response } from 'express';
 import {
@@ -31,6 +33,25 @@ import {
 } from './dto/credentials.dto';
 
 const CLIENT_COOKIE = 'vexa_auth_client';
+const AUTH_CLIENTS: readonly AuthClient[] = ['company', 'admin', 'mobile', 'courier'];
+
+function isAuthClient(value: unknown): value is AuthClient {
+  return typeof value === 'string' && (AUTH_CLIENTS as readonly string[]).includes(value);
+}
+
+/**
+ * Apple devuelve el callback vía POST cross-site (response_mode=form_post), donde la cookie
+ * SameSite no viaja; el cliente destino se transporta en `state` y se recupera en el callback.
+ */
+@Injectable()
+class AppleAuthGuard extends AuthGuard(AUTH_STRATEGIES.APPLE) {
+  override getAuthenticateOptions(context: ExecutionContext): IAuthModuleOptions {
+    const req = context.switchToHttp().getRequest<Request>();
+    const client = req.query['client'];
+    const state = isAuthClient(client) ? client : undefined;
+    return { state, response_mode: 'form_post' } as IAuthModuleOptions;
+  }
+}
 
 @ApiTags(ApiRoutes.AUTH)
 @Controller(ApiRoutes.AUTH)
@@ -62,26 +83,26 @@ export class AuthController {
   }
 
   @Public()
-  @Get('facebook')
-  @ApiOperation({ summary: 'Inicia OAuth con Facebook. ?client=company|admin|mobile' })
-  facebook(@Query('client') client: AuthClient = 'company', @Res() res: Response) {
-    res.cookie(CLIENT_COOKIE, client, { httpOnly: true, maxAge: 5 * 60_000, sameSite: 'lax' });
-    return res.redirect(`./facebook/start`);
+  @Get('apple')
+  @ApiOperation({ summary: 'Inicia Sign in with Apple. ?client=company|admin|mobile' })
+  apple(@Query('client') client: AuthClient = 'company', @Res() res: Response) {
+    res.cookie(CLIENT_COOKIE, client, { httpOnly: true, maxAge: 5 * 60_000, sameSite: 'none', secure: true });
+    return res.redirect(`./apple/start?client=${encodeURIComponent(client)}`);
   }
 
   @Public()
-  @Get('facebook/start')
-  @UseGuards(AuthGuard(AUTH_STRATEGIES.FACEBOOK))
+  @Get('apple/start')
+  @UseGuards(AppleAuthGuard)
   @ApiExcludeEndpoint()
-  facebookStart() {
+  appleStart() {
     return;
   }
 
   @Public()
-  @Get('facebook/callback')
-  @UseGuards(AuthGuard(AUTH_STRATEGIES.FACEBOOK))
+  @Post('apple/callback')
+  @UseGuards(AppleAuthGuard)
   @ApiExcludeEndpoint()
-  facebookCallback(@Req() req: Request, @Res() res: Response) {
+  appleCallback(@Req() req: Request, @Res() res: Response) {
     return this.completeOAuth(req, res);
   }
 
@@ -145,7 +166,11 @@ export class AuthController {
   }
 
   private async completeOAuth(req: Request, res: Response) {
-    const client = ((req.cookies?.[CLIENT_COOKIE] as AuthClient) ?? 'company') satisfies AuthClient;
+    const state = (req.query['state'] ?? (req.body as Record<string, unknown> | undefined)?.['state']) as
+      | string
+      | undefined;
+    const cookieClient = req.cookies?.[CLIENT_COOKIE] as AuthClient | undefined;
+    const client: AuthClient = isAuthClient(state) ? state : cookieClient ?? 'company';
     const tokens = await this.auth.loginWithOAuth(req.user as OAuthProfile, client);
     res.clearCookie(CLIENT_COOKIE);
     return res.redirect(this.auth.buildRedirectUrl(client, tokens));
