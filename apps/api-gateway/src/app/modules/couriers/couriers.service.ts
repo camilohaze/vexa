@@ -305,6 +305,9 @@ export class CouriersService {
     const onTimeRate = await this.computeOnTimeRate(courier.id);
     return {
       name: courier.user?.fullName ?? 'Repartidor',
+      avatarUrl: courier.user?.avatarUrl ?? null,
+      vehicle: courier.vehicle,
+      vehicleDetails: courier.vehicleDetails ?? null,
       rating: Number(courier.rating ?? 0),
       totalJobs,
       onTimeRate,

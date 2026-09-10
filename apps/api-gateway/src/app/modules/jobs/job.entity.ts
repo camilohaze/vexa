@@ -9,7 +9,7 @@ import {
   UpdateDateColumn,
 } from 'typeorm';
 import type { Point } from 'geojson';
-import { Address, JobStatus } from '@vexa/shared';
+import { Address, JobDimensions, JobPriceBreakdown, JobStatus } from '@vexa/shared';
 import { CompanyEntity } from '../companies/company.entity';
 import { CourierEntity } from '../couriers/courier.entity';
 
@@ -70,8 +70,35 @@ export class JobEntity {
   @Column({ type: 'text', nullable: true })
   notes?: string | null;
 
+  @Column({ name: 'package_type', type: 'varchar', nullable: true })
+  packageType?: string | null;
+
+  @Column({ name: 'weight_kg', type: 'decimal', precision: 10, scale: 2, nullable: true })
+  weightKg?: number | null;
+
+  @Column({ type: 'jsonb', nullable: true })
+  dimensions?: JobDimensions | null;
+
+  @Column({ name: 'declared_value', type: 'decimal', precision: 12, scale: 2, nullable: true })
+  declaredValue?: number | null;
+
+  @Column({ default: false })
+  fragile!: boolean;
+
+  @Column({ default: false })
+  refrigerated!: boolean;
+
+  @Column({ type: 'varchar', default: 'standard' })
+  priority!: 'standard' | 'express' | 'same_day';
+
+  @Column({ name: 'price_breakdown', type: 'jsonb', nullable: true })
+  priceBreakdown?: JobPriceBreakdown | null;
+
   @Column({ name: 'proof_of_delivery_url', type: 'varchar', nullable: true })
   proofOfDeliveryUrl?: string | null;
+
+  @Column({ name: 'pod_signed_by', type: 'varchar', nullable: true })
+  podSignedBy?: string | null;
 
   @Column({ name: 'rating_score', type: 'int', nullable: true })
   ratingScore?: number | null;
@@ -84,6 +111,9 @@ export class JobEntity {
 
   @Column({ name: 'accepted_at', type: 'timestamptz', nullable: true })
   acceptedAt?: Date | null;
+
+  @Column({ name: 'picked_up_at', type: 'timestamptz', nullable: true })
+  pickedUpAt?: Date | null;
 
   @Column({ name: 'completed_at', type: 'timestamptz', nullable: true })
   completedAt?: Date | null;

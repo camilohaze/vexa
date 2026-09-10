@@ -20,7 +20,16 @@ import {
 } from '@vexa/shared';
 import { CompaniesService } from '../companies/companies.service';
 import { CouriersService } from '../couriers/couriers.service';
-import { CancelJobDto, CompleteJobDto, CreateJobDto, ListJobsQueryDto, PriceEstimateQueryDto, RateJobDto, SendMessageDto } from './dto';
+import {
+  CancelJobDto,
+  CompleteJobDto,
+  CreateJobDto,
+  JobHistoryQueryDto,
+  ListJobsQueryDto,
+  PriceEstimateQueryDto,
+  RateJobDto,
+  SendMessageDto,
+} from './dto';
 import { DirectionsService } from './directions.service';
 import { JobEntity } from './job.entity';
 import { JobMessageEntity } from './message.entity';
@@ -62,6 +71,14 @@ export class JobsService {
       dropoffPoint: { type: 'Point', coordinates: [dto.dropoff.lng, dto.dropoff.lat] },
       price: dto.price,
       notes: dto.notes,
+      packageType: dto.packageType,
+      weightKg: dto.weightKg,
+      dimensions: dto.dimensions,
+      declaredValue: dto.declaredValue,
+      fragile: dto.fragile ?? false,
+      refrigerated: dto.refrigerated ?? false,
+      priority: dto.priority ?? 'standard',
+      priceBreakdown: dto.priceBreakdown,
       status: JobStatus.PENDING,
     });
     const saved = await this.repo.save(job);
@@ -89,6 +106,56 @@ export class JobsService {
       take: query.pageSize,
     });
     return { items, total, page: query.page, pageSize: query.pageSize };
+  }
+
+  /** Historial de entregas completadas de la empresa, con estadísticas agregadas sobre todo el filtro (no solo la página). */
+  async history(query: JobHistoryQueryDto, user: AuthenticatedUser) {
+    const company = await this.companies.getForUser(user);
+    const qb = this.repo
+      .createQueryBuilder('job')
+      .leftJoinAndSelect('job.courier', 'courier')
+      .leftJoinAndSelect('courier.user', 'courierUser')
+      .where('job.companyId = :companyId', { companyId: company.id })
+      .andWhere('job.status = :status', { status: JobStatus.DELIVERED });
+
+    if (query.from) qb.andWhere('job.createdAt >= :from', { from: new Date(query.from) });
+    if (query.to) qb.andWhere('job.createdAt <= :to', { to: new Date(query.to) });
+    if (query.search) {
+      qb.andWhere(
+        `(job.pickup->>'city' ILIKE :search OR job.dropoff->>'city' ILIKE :search OR job.packageType ILIKE :search OR courierUser.fullName ILIKE :search OR CAST(job.id AS text) ILIKE :search)`,
+        { search: `%${query.search}%` }
+      );
+    }
+
+    const [totalCount, totalSpendRow, avgTransportRow] = await Promise.all([
+      qb.clone().getCount(),
+      qb.clone().select('COALESCE(SUM("job"."price"), 0)', 'sum').getRawOne<{ sum: string }>(),
+      qb
+        .clone()
+        .select(
+          'AVG(EXTRACT(EPOCH FROM ("job"."completed_at" - COALESCE("job"."picked_up_at", "job"."accepted_at"))))',
+          'avgSeconds'
+        )
+        .getRawOne<{ avgSeconds: string | null }>(),
+    ]);
+
+    const items = await qb
+      .orderBy('job.createdAt', 'DESC')
+      .skip((query.page - 1) * query.pageSize)
+      .take(query.pageSize)
+      .getMany();
+
+    return {
+      items,
+      total: totalCount,
+      page: query.page,
+      pageSize: query.pageSize,
+      stats: {
+        totalCount,
+        totalSpend: Number(totalSpendRow?.sum ?? 0),
+        avgTransportSeconds: avgTransportRow?.avgSeconds ? Number(avgTransportRow.avgSeconds) : 0,
+      },
+    };
   }
 
   async getById(id: string, user: AuthenticatedUser) {
@@ -123,6 +190,7 @@ export class JobsService {
     const job = await this.getById(id, user);
     this.assertTransition(job, status);
     job.status = status;
+    if (status === JobStatus.PICKED_UP) job.pickedUpAt = new Date();
     return this.repo.save(job);
   }
 
@@ -132,6 +200,7 @@ export class JobsService {
     job.status = JobStatus.DELIVERED;
     job.completedAt = new Date();
     job.proofOfDeliveryUrl = dto.proofOfDeliveryUrl;
+    job.podSignedBy = dto.podSignedBy;
     const saved = await this.repo.save(job);
     const event: JobCompletedEvent = {
       jobId: saved.id,

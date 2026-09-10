@@ -1,5 +1,5 @@
 import { inject, Injectable } from '@angular/core';
-import { Job, JobStatus, Paginated } from '@vexa/shared';
+import { Job, JobDimensions, JobPriceBreakdown, JobStatus, Paginated } from '@vexa/shared';
 import { ApiService } from '../../core/api/api.service';
 
 export interface CreateJobPayload {
@@ -7,6 +7,28 @@ export interface CreateJobPayload {
   dropoff: { line1: string; city: string; lat: number; lng: number; line2?: string; reference?: string };
   price: number;
   notes?: string;
+  packageType?: string;
+  weightKg?: number;
+  dimensions?: JobDimensions;
+  declaredValue?: number;
+  fragile?: boolean;
+  refrigerated?: boolean;
+  priority?: 'standard' | 'express' | 'same_day';
+  priceBreakdown?: JobPriceBreakdown;
+}
+
+export interface DeliveryHistoryStats {
+  totalCount: number;
+  totalSpend: number;
+  avgTransportSeconds: number;
+}
+
+export interface DeliveryHistoryJob extends Job {
+  courier?: { id: string; user?: { fullName?: string } } | null;
+}
+
+export interface DeliveryHistoryPage extends Paginated<DeliveryHistoryJob> {
+  stats: DeliveryHistoryStats;
 }
 
 @Injectable({ providedIn: 'root' })
@@ -23,6 +45,10 @@ export class JobsService {
 
   create(payload: CreateJobPayload) {
     return this.api.post<Job>('jobs', payload);
+  }
+
+  history(params: { from?: string; to?: string; search?: string; page?: number; pageSize?: number } = {}) {
+    return this.api.get<DeliveryHistoryPage>('jobs/history', params as Record<string, string | number>);
   }
 
   cancel(id: string, reason?: string) {

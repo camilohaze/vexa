@@ -51,6 +51,22 @@ export interface Courier {
   fcmToken?: string;
 }
 
+export interface JobDimensions {
+  l: number;
+  w: number;
+  h: number;
+}
+
+export interface JobPriceBreakdown {
+  base: number;
+  distance: number;
+  time: number;
+  weight: number;
+  priorityMultiplier: number;
+  subtotal: number;
+  commission: number;
+}
+
 export interface Job {
   id: string;
   companyId: string;
@@ -61,9 +77,19 @@ export interface Job {
   price: number;
   distanceMeters?: number;
   notes?: string;
+  packageType?: string;
+  weightKg?: number;
+  dimensions?: JobDimensions;
+  declaredValue?: number;
+  fragile?: boolean;
+  refrigerated?: boolean;
+  priority?: 'standard' | 'express' | 'same_day';
+  priceBreakdown?: JobPriceBreakdown;
   proofOfDeliveryUrl?: string;
+  podSignedBy?: string;
   createdAt: string;
   acceptedAt?: string;
+  pickedUpAt?: string;
   completedAt?: string;
 }
 

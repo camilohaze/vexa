@@ -84,6 +84,10 @@ const PRIORITIES = [
               <mat-form-field appearance="outline"><mat-label>Ancho</mat-label><input matInput type="number" formControlName="dimW" /></mat-form-field>
               <mat-form-field appearance="outline"><mat-label>Alto</mat-label><input matInput type="number" formControlName="dimH" /></mat-form-field>
             </div>
+            <mat-form-field appearance="outline" class="w-full">
+              <mat-label>Valor declarado (COP, opcional)</mat-label>
+              <input matInput type="number" formControlName="declaredValue" />
+            </mat-form-field>
             <div class="toggles vexa-card">
               <h3 class="vexa-overline">Manejo especial</h3>
               <mat-checkbox formControlName="fragile">Artículo frágil</mat-checkbox>
@@ -352,6 +356,7 @@ export class JobCreate {
     dimL: [0],
     dimW: [0],
     dimH: [0],
+    declaredValue: [0],
     priority: ['standard'],
     pickupAt: [''],
     notes: [''],
@@ -462,6 +467,14 @@ export class JobCreate {
         dropoff: v.dropoff,
         price: v.price,
         notes: v.description || v.notes,
+        packageType: v.packageType,
+        weightKg: v.weight,
+        dimensions: { l: v.dimL, w: v.dimW, h: v.dimH },
+        declaredValue: v.declaredValue || undefined,
+        fragile: v.fragile,
+        refrigerated: v.refrigerated,
+        priority: v.priority as 'standard' | 'express' | 'same_day',
+        priceBreakdown: this.estimate()?.breakdown,
       })
       .subscribe({
         next: (job) => {

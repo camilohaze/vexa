@@ -2,7 +2,16 @@ import { Body, Controller, Get, Param, ParseUUIDPipe, Patch, Post, Query } from 
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import { AuthenticatedUser, CurrentUser, Roles } from '@vexa/auth';
 import { ApiRoutes, JobStatus, UserRole } from '@vexa/shared';
-import { CancelJobDto, CompleteJobDto, CreateJobDto, ListJobsQueryDto, PriceEstimateQueryDto, RateJobDto, SendMessageDto } from './dto';
+import {
+  CancelJobDto,
+  CompleteJobDto,
+  CreateJobDto,
+  JobHistoryQueryDto,
+  ListJobsQueryDto,
+  PriceEstimateQueryDto,
+  RateJobDto,
+  SendMessageDto,
+} from './dto';
 import { JobsService } from './jobs.service';
 
 @ApiTags(ApiRoutes.JOBS)
@@ -26,6 +35,12 @@ export class JobsController {
   @Roles(UserRole.COMPANY, UserRole.ADMIN)
   priceEstimate(@Query() query: PriceEstimateQueryDto) {
     return this.jobs.priceEstimate(query);
+  }
+
+  @Get('history')
+  @Roles(UserRole.COMPANY)
+  history(@Query() query: JobHistoryQueryDto, @CurrentUser() user: AuthenticatedUser) {
+    return this.jobs.history(query, user);
   }
 
   @Get(':id/receipt')

@@ -25,7 +25,7 @@ import { JobsService } from './jobs.service';
           <div class="courier-brief">
             <div class="courier-brief__avatar"><mat-icon>person</mat-icon></div>
             <div class="courier-brief__info">
-              <span class="courier-brief__name">{{ courierName() ?? 'Repartidor por asignar' }}</span>
+              <span class="courier-brief__name">{{ courierProfile()?.name ?? 'Repartidor por asignar' }}</span>
               <span class="courier-brief__meta">Socio Vexa</span>
             </div>
           </div>
@@ -52,19 +52,82 @@ import { JobsService } from './jobs.service';
 
         @if (job()?.status === 'DELIVERED') {
           <div class="vexa-card">
+            <h3 class="vexa-h5">Especificaciones del paquete</h3>
+            <div class="spec-grid">
+              <div class="spec"><span class="vexa-overline">Tipo</span><strong>{{ job()?.packageType || '—' }}</strong></div>
+              <div class="spec"><span class="vexa-overline">Peso</span><strong>{{ job()?.weightKg ? job()?.weightKg + ' kg' : '—' }}</strong></div>
+              @if (job()?.dimensions; as d) {
+                <div class="spec"><span class="vexa-overline">Dimensiones</span><strong>{{ d.l }} × {{ d.w }} × {{ d.h }} cm</strong></div>
+              }
+              @if (job()?.declaredValue) {
+                <div class="spec"><span class="vexa-overline">Valor declarado</span><strong>{{ job()?.declaredValue | number: '1.0-0' }} COP</strong></div>
+              }
+            </div>
+            @if (job()?.fragile || job()?.refrigerated) {
+              <div class="spec-tags">
+                @if (job()?.fragile) { <span class="tag">Frágil</span> }
+                @if (job()?.refrigerated) { <span class="tag">Temperatura controlada</span> }
+              </div>
+            }
+          </div>
+
+          <div class="vexa-card">
             <h3 class="vexa-h5">Prueba de entrega</h3>
             @if (job()?.proofOfDeliveryUrl; as pod) {
               <img class="pod" [src]="pod" alt="Prueba de entrega" />
             } @else {
               <p class="muted">Sin evidencia cargada.</p>
             }
+            @if (job()?.podSignedBy; as signer) {
+              <p class="signed-by">Firmado por: <strong>{{ signer }}</strong></p>
+            }
           </div>
+
+          @if (courierProfile(); as cp) {
+            <div class="vexa-card">
+              <h3 class="vexa-h5">Repartidor asignado</h3>
+              <div class="courier-card">
+                <div class="courier-card__avatar">
+                  @if (cp.avatarUrl) {
+                    <img [src]="cp.avatarUrl" alt="" />
+                  } @else {
+                    <mat-icon>person</mat-icon>
+                  }
+                </div>
+                <div class="courier-card__info">
+                  <strong>{{ cp.name }}</strong>
+                  <div class="courier-card__meta">
+                    <mat-icon class="star">star</mat-icon>
+                    {{ cp.rating | number: '1.1-1' }} ({{ cp.totalJobs }} entregas)
+                  </div>
+                  @if (cp.vehicleDetails; as vd) {
+                    @if (vd.make || vd.plate) {
+                      <div class="courier-card__vehicle">
+                        {{ vd.make }}
+                        @if (vd.plate) { ({{ vd.plate }}) }
+                      </div>
+                    }
+                  }
+                </div>
+              </div>
+            </div>
+          }
+
           <div class="vexa-card">
             <h3 class="vexa-h5">Desglose de facturación</h3>
-            <div class="cost"><span>Tarifa base</span><span>{{ (job()?.price ?? 0) * 0.7 | number: '1.0-0':'es-CO' }} COP</span></div>
-            <div class="cost"><span>Recargo por distancia</span><span>{{ (job()?.price ?? 0) * 0.2 | number: '1.0-0':'es-CO' }} COP</span></div>
-            <div class="cost"><span>Ajuste</span><span>{{ (job()?.price ?? 0) * 0.1 | number: '1.0-0':'es-CO' }} COP</span></div>
-            <div class="cost cost--total"><span>Total</span><span>{{ job()?.price | number: '1.0-0':'es-CO' }} COP</span></div>
+            @if (job()?.priceBreakdown; as b) {
+              <div class="cost"><span>Tarifa base</span><span>{{ b.base | number: '1.0-0' }} COP</span></div>
+              <div class="cost"><span>Distancia</span><span>{{ b.distance | number: '1.0-0' }} COP</span></div>
+              <div class="cost"><span>Tiempo</span><span>{{ b.time | number: '1.0-0' }} COP</span></div>
+              @if (b.weight) {
+                <div class="cost"><span>Peso</span><span>{{ b.weight | number: '1.0-0' }} COP</span></div>
+              }
+              @if (b.priorityMultiplier !== 1) {
+                <div class="cost"><span>Prioridad</span><span>×{{ b.priorityMultiplier }}</span></div>
+              }
+              <div class="cost"><span>Comisión plataforma</span><span>{{ b.commission | number: '1.0-0' }} COP</span></div>
+            }
+            <div class="cost cost--total"><span>Total</span><span>{{ job()?.price | number: '1.0-0' }} COP</span></div>
             <a class="rate-btn" [routerLink]="['/jobs', id(), 'rate']">Calificar repartidor</a>
           </div>
         }
@@ -119,7 +182,28 @@ import { JobsService } from './jobs.service';
     .timeline-card { display: flex; flex-direction: column; gap: 20px; }
 
     .muted { color: var(--vexa-gray-500); margin: 0; }
+    .spec-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; }
+    .spec { display: flex; flex-direction: column; gap: 2px; }
+    .spec strong { font-size: 14px; color: var(--vexa-gray-900); }
+    .spec-tags { display: flex; gap: 8px; margin-top: 12px; }
+    .tag {
+      font-size: 12px; font-weight: 600; padding: 4px 10px; border-radius: 8px;
+      background: var(--vexa-warning-50); color: var(--vexa-warning-900);
+    }
     .pod { width: 100%; border-radius: 12px; }
+    .signed-by { font-size: 13px; color: var(--vexa-gray-600); margin: 8px 0 0; }
+    .courier-card { display: flex; align-items: center; gap: 14px; }
+    .courier-card__avatar {
+      width: 48px; height: 48px; border-radius: 50%; flex: none; overflow: hidden;
+      background: var(--vexa-primary-100); color: var(--vexa-primary-700);
+      display: grid; place-items: center;
+    }
+    .courier-card__avatar img { width: 100%; height: 100%; object-fit: cover; }
+    .courier-card__info { display: flex; flex-direction: column; gap: 2px; }
+    .courier-card__info strong { font-size: 15px; color: var(--vexa-gray-900); }
+    .courier-card__meta { display: flex; align-items: center; gap: 4px; font-size: 13px; color: var(--vexa-gray-600); }
+    .courier-card__meta .star { font-size: 15px; width: 15px; height: 15px; color: var(--vexa-warning-500); }
+    .courier-card__vehicle { font-size: 12px; color: var(--vexa-gray-500); }
     .cost { display: flex; justify-content: space-between; font-size: 13px; padding: 4px 0; }
     .cost--total { font-weight: 700; border-top: 1px solid var(--vexa-gray-200); margin-top: 8px; padding-top: 10px; }
     .rate-btn {
@@ -149,7 +233,14 @@ export class JobTracking implements OnInit {
 
   protected readonly job = signal<Job | null>(null);
   protected readonly courierAt = signal<{ lat: number; lng: number } | null>(null);
-  protected readonly courierName = signal<string | null>(null);
+  protected readonly courierProfile = signal<{
+    name: string;
+    avatarUrl: string | null;
+    vehicle: string;
+    vehicleDetails: { make?: string; year?: number; plate?: string; color?: string } | null;
+    rating: number;
+    totalJobs: number;
+  } | null>(null);
 
   private readonly jobs = inject(JobsService);
   private readonly realtime = inject(RealtimeService);
@@ -206,7 +297,7 @@ export class JobTracking implements OnInit {
   ngOnInit() {
     this.jobs.getById(this.id()).subscribe((job) => {
       this.job.set(job);
-      if (job.courierId) this.loadCourierName(job.courierId);
+      if (job.courierId) this.loadCourierProfile(job.courierId);
     });
     this.realtime.subscribeToJob(this.id());
     this.realtime.on(SocketEvents.COURIER_LOCATION).subscribe((loc) => {
@@ -217,14 +308,23 @@ export class JobTracking implements OnInit {
     this.realtime.on(SocketEvents.JOB_CANCELLED).subscribe(() => this.refresh());
   }
 
-  private loadCourierName(courierId: string) {
-    this.api.get<{ name: string }>(`couriers/${courierId}/profile`).subscribe((c) => this.courierName.set(c.name));
+  private loadCourierProfile(courierId: string) {
+    this.api
+      .get<{
+        name: string;
+        avatarUrl: string | null;
+        vehicle: string;
+        vehicleDetails: { make?: string; year?: number; plate?: string; color?: string } | null;
+        rating: number;
+        totalJobs: number;
+      }>(`couriers/${courierId}/profile`)
+      .subscribe((c) => this.courierProfile.set(c));
   }
 
   private refresh() {
     this.jobs.getById(this.id()).subscribe((job) => {
       this.job.set(job);
-      if (job.courierId) this.loadCourierName(job.courierId);
+      if (job.courierId) this.loadCourierProfile(job.courierId);
     });
   }
 }
