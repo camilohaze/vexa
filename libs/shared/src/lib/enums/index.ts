@@ -7,9 +7,7 @@ export enum UserRole {
 export enum AuthProvider {
   EMAIL = 'EMAIL',
   GOOGLE = 'GOOGLE',
-  MICROSOFT = 'MICROSOFT',
   APPLE = 'APPLE',
-  FACEBOOK = 'FACEBOOK',
 }
 
 export enum JobStatus {

@@ -6,7 +6,7 @@ import { AUTH_ENV } from './auth.constants';
 import { JwtAuthGuard, RolesGuard } from './guards';
 import { TokenService } from './services/token.service';
 import {
-  FacebookStrategy,
+  AppleStrategy,
   GoogleStrategy,
   JwtRefreshStrategy,
   JwtStrategy,
@@ -19,7 +19,9 @@ export interface AuthModuleOptions {
 @Module({})
 export class AuthModule {
   static forRoot(options: AuthModuleOptions = {}): DynamicModule {
-    const oauthStrategies = options.oauthProviders ? [GoogleStrategy, FacebookStrategy] : [];
+    const oauthStrategies = options.oauthProviders
+      ? [GoogleStrategy, AppleStrategy]
+      : [];
     return {
       module: AuthModule,
       global: true,

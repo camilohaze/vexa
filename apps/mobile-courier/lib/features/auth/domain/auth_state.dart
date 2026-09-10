@@ -2,9 +2,7 @@ import 'courier_user.dart';
 
 enum AuthProvider {
   google('google', 'Google'),
-  microsoft('microsoft', 'Microsoft'),
-  apple('apple', 'Apple'),
-  facebook('facebook', 'Facebook');
+  apple('apple', 'Apple');
 
   const AuthProvider(this.path, this.label);
 
