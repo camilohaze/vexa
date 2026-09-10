@@ -1,9 +1,24 @@
 import { DatePipe, DecimalPipe } from '@angular/common';
-import { ChangeDetectionStrategy, Component, inject, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { MatIconModule } from '@angular/material/icon';
 import { MatSnackBar } from '@angular/material/snack-bar';
-import { CourierEarnings, CourierTransaction, CouriersService, PayoutMethod } from '../../core/couriers/couriers.service';
+import { CourierEarnings, CourierTransaction, CouriersService, Payout, PayoutMethod } from '../../core/couriers/couriers.service';
+
+interface LedgerRow {
+  id: string;
+  at: string;
+  title: string;
+  amount: number;
+  statusLabel?: string;
+}
+
+const PAYOUT_STATUS_LABEL: Record<string, string> = {
+  PENDING: 'Pendiente',
+  PROCESSING: 'En proceso',
+  COMPLETED: 'Completado',
+  FAILED: 'Fallido',
+};
 
 /** Figma: web-courier-wallet */
 @Component({
@@ -48,11 +63,16 @@ import { CourierEarnings, CourierTransaction, CouriersService, PayoutMethod } fr
         <span class="col col--desc">Descripción</span>
         <span class="col col--amount">Monto</span>
       </div>
-      @for (tx of transactions(); track tx.id) {
+      @for (row of ledgerRows(); track row.id) {
         <div class="row">
-          <span class="col col--date">{{ tx.at | date: 'mediumDate' }}</span>
-          <span class="col col--desc">{{ tx.title }}</span>
-          <span class="col col--amount">+\${{ tx.amount | number: '1.2-2' }}</span>
+          <span class="col col--date">{{ row.at | date: 'mediumDate' }}</span>
+          <span class="col col--desc">
+            {{ row.title }}
+            @if (row.statusLabel) { <span class="status-tag">{{ row.statusLabel }}</span> }
+          </span>
+          <span class="col col--amount" [class.col--amount--negative]="row.amount < 0">
+            {{ row.amount < 0 ? '-' : '+' }}\${{ (row.amount < 0 ? -row.amount : row.amount) | number: '1.2-2' }}
+          </span>
         </div>
       } @empty {
         <p class="empty">Aún no tienes pagos registrados.</p>
@@ -90,6 +110,11 @@ import { CourierEarnings, CourierTransaction, CouriersService, PayoutMethod } fr
     .col--date { width: 140px; flex: none; font-size: 13px; color: var(--vexa-gray-600); }
     .col--desc { flex: 1 1 auto; min-width: 0; font-size: 14px; font-weight: 600; color: var(--vexa-gray-900); }
     .col--amount { width: 100px; flex: none; text-align: right; font-weight: 700; color: var(--vexa-success-600); }
+    .col--amount--negative { color: var(--vexa-gray-700); }
+    .status-tag {
+      margin-left: 8px; font-size: 11px; font-weight: 600; color: var(--vexa-gray-500);
+      background: var(--vexa-gray-100); padding: 2px 8px; border-radius: 6px;
+    }
     .empty { color: var(--vexa-gray-500); padding: 8px 0; }
   `,
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -100,19 +125,37 @@ export class Wallet {
 
   protected readonly earnings = signal<CourierEarnings | null>(null);
   protected readonly transactions = signal<CourierTransaction[]>([]);
+  protected readonly payouts = signal<Payout[]>([]);
   protected readonly methods = signal<PayoutMethod[]>([]);
   protected readonly requesting = signal(false);
 
   protected amount: number | null = null;
   protected method = '';
 
+  protected readonly ledgerRows = computed<LedgerRow[]>(() => {
+    const earned = this.transactions().map((tx) => ({ id: tx.id, at: tx.at, title: tx.title, amount: tx.amount }));
+    const withdrawn = this.payouts().map((p) => ({
+      id: p.id,
+      at: p.createdAt,
+      title: `Retiro — ${p.method}`,
+      amount: -p.amount,
+      statusLabel: PAYOUT_STATUS_LABEL[p.status] ?? p.status,
+    }));
+    return [...earned, ...withdrawn].sort((a, b) => new Date(b.at).getTime() - new Date(a.at).getTime());
+  });
+
   constructor() {
     this.couriers.earnings().subscribe((e) => this.earnings.set(e));
     this.couriers.transactions().subscribe((t) => this.transactions.set(t));
+    this.loadPayouts();
     this.couriers.payoutMethods().subscribe((m) => {
       this.methods.set(m);
       if (m.length) this.method = m[0].key;
     });
+  }
+
+  private loadPayouts() {
+    this.couriers.payouts().subscribe((p) => this.payouts.set(p));
   }
 
   withdraw() {
@@ -123,6 +166,7 @@ export class Wallet {
         this.requesting.set(false);
         this.amount = null;
         this.snack.open('Retiro solicitado', undefined, { duration: 2500 });
+        this.loadPayouts();
       },
       error: () => {
         this.requesting.set(false);

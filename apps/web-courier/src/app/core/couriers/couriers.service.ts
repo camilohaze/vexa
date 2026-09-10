@@ -29,6 +29,16 @@ export interface PayoutMethod {
   time: string;
 }
 
+export type PayoutStatus = 'PENDING' | 'PROCESSING' | 'COMPLETED' | 'FAILED';
+
+export interface Payout {
+  id: string;
+  amount: number;
+  method: string;
+  status: PayoutStatus;
+  createdAt: string;
+}
+
 export interface CourierPerformance {
   onTimeRate: number;
   acceptanceRate: number;
@@ -63,10 +73,16 @@ export interface VehicleDetails {
 
 export type VerificationStatus = 'required' | 'pending' | 'verified' | 'rejected';
 
+export interface VerificationStepMeta {
+  docNumber?: string;
+  expiresAt?: string;
+}
+
 export interface VerificationStep {
   type: 'identity' | 'vehicle' | 'insurance' | 'background';
   status: VerificationStatus;
   urls: string[];
+  meta?: VerificationStepMeta | null;
 }
 
 export interface CourierVerification {
@@ -103,6 +119,10 @@ export class CouriersService {
     return this.api.post<unknown>('couriers/me/payouts', { amount, method });
   }
 
+  payouts() {
+    return this.api.get<Payout[]>('couriers/me/payouts');
+  }
+
   performance() {
     return this.api.get<CourierPerformance>('couriers/me/performance');
   }
@@ -119,7 +139,7 @@ export class CouriersService {
     return this.api.patch<Courier>('couriers/me/vehicle', dto);
   }
 
-  submitVerification(type: VerificationStep['type'], urls: string[]) {
-    return this.api.post<unknown>('couriers/me/verification', { type, urls });
+  submitVerification(type: VerificationStep['type'], urls: string[], meta?: VerificationStepMeta) {
+    return this.api.post<unknown>('couriers/me/verification', { type, urls, meta });
   }
 }

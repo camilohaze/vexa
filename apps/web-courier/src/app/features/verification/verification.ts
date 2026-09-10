@@ -34,13 +34,23 @@ const STEP_META: Record<VerificationStep['type'], { title: string; desc: string 
           @if (step.urls.length) {
             <a [href]="step.urls[0]" target="_blank" rel="noopener" class="link">Ver documento</a>
           }
+          @if (step.meta?.docNumber || step.meta?.expiresAt) {
+            <div class="doc-meta">
+              @if (step.meta?.docNumber) { <span>N.º documento: <strong>{{ step.meta?.docNumber }}</strong></span> }
+              @if (step.meta?.expiresAt) { <span>Vence: <strong>{{ step.meta?.expiresAt }}</strong></span> }
+            </div>
+          }
           <hr />
           <div class="upload-row">
             <input type="url" placeholder="URL del documento" [(ngModel)]="urlDraft[step.type]" />
-            <button type="button" (click)="submit(step.type)" [disabled]="!urlDraft[step.type] || submitting() === step.type">
-              {{ submitting() === step.type ? 'Enviando…' : 'Enviar' }}
-            </button>
           </div>
+          <div class="upload-row">
+            <input type="text" placeholder="N.º de documento (opcional)" [(ngModel)]="docNumberDraft[step.type]" />
+            <input type="date" placeholder="Vencimiento" [(ngModel)]="expiresAtDraft[step.type]" />
+          </div>
+          <button type="button" class="submit-btn" (click)="submit(step.type)" [disabled]="!urlDraft[step.type] || submitting() === step.type">
+            {{ submitting() === step.type ? 'Enviando…' : 'Enviar' }}
+          </button>
         </div>
       }
     </div>
@@ -73,7 +83,9 @@ const STEP_META: Record<VerificationStep['type'], { title: string; desc: string 
       flex: 1 1 auto; min-width: 0; padding: 10px 12px; border-radius: var(--vexa-radius-sm);
       border: 1px solid var(--vexa-gray-200); font-size: 13px;
     }
-    .upload-row button {
+    .doc-meta { display: flex; flex-direction: column; gap: 2px; font-size: 12px; color: var(--vexa-gray-600); }
+    .doc-meta strong { color: var(--vexa-gray-900); }
+    .submit-btn {
       background: var(--vexa-primary-600); color: #fff; border: none; border-radius: var(--vexa-radius-sm);
       padding: 10px 16px; font-size: 13px; font-weight: 600; cursor: pointer;
       &:disabled { opacity: 0.5; cursor: not-allowed; }
@@ -88,6 +100,8 @@ export class Verification {
   protected readonly verification = signal<CourierVerification | null>(null);
   protected readonly submitting = signal<string | null>(null);
   protected readonly urlDraft: Record<string, string> = {};
+  protected readonly docNumberDraft: Record<string, string> = {};
+  protected readonly expiresAtDraft: Record<string, string> = {};
 
   protected readonly bannerText = computed(() => {
     const v = this.verification();
@@ -110,10 +124,16 @@ export class Verification {
     const url = this.urlDraft[type];
     if (!url) return;
     this.submitting.set(type);
-    this.couriers.submitVerification(type, [url]).subscribe({
+    const meta = {
+      ...(this.docNumberDraft[type] ? { docNumber: this.docNumberDraft[type] } : {}),
+      ...(this.expiresAtDraft[type] ? { expiresAt: this.expiresAtDraft[type] } : {}),
+    };
+    this.couriers.submitVerification(type, [url], Object.keys(meta).length ? meta : undefined).subscribe({
       next: () => {
         this.submitting.set(null);
         this.urlDraft[type] = '';
+        this.docNumberDraft[type] = '';
+        this.expiresAtDraft[type] = '';
         this.load();
       },
       error: () => this.submitting.set(null),

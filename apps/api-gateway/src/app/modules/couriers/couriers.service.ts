@@ -130,10 +130,28 @@ export class CouriersService {
       rating: Number(courier.rating),
       ratingsCount: courier.ratingsCount,
       dailyBars: daily.map((v) => v / max),
-      breakdown: [
-        ['Envíos', week, delivered.length],
-      ] as [string, number, number][],
+      breakdown: this.earningsBreakdown(delivered),
     };
+  }
+
+  private earningsBreakdown(delivered: JobEntity[]): [string, number, number][] {
+    const labels: Record<string, string> = {
+      document: 'Documentos',
+      small: 'Paquete pequeño',
+      large: 'Paquete grande',
+      pallet: 'Pallet',
+    };
+    const groups = new Map<string, { amount: number; count: number }>();
+    for (const j of delivered) {
+      const key = j.packageType ?? 'other';
+      const g = groups.get(key) ?? { amount: 0, count: 0 };
+      g.amount += Number(j.price ?? 0);
+      g.count += 1;
+      groups.set(key, g);
+    }
+    return [...groups.entries()]
+      .sort((a, b) => b[1].amount - a[1].amount)
+      .map(([key, g]) => [labels[key] ?? 'Otros', g.amount, g.count]);
   }
 
   private async earningsBetween(courierId: string, from: Date, to: Date) {
@@ -168,6 +186,7 @@ export class CouriersService {
       type: k,
       status: v[k]?.status ?? 'required',
       urls: v[k]?.urls ?? [],
+      meta: v[k]?.meta ?? null,
     }));
     return {
       steps,

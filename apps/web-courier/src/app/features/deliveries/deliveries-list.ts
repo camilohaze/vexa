@@ -7,6 +7,13 @@ import { JobsService } from '../jobs/jobs.service';
 
 type Tab = 'active' | 'completed' | 'pending';
 
+const PACKAGE_TYPE_LABELS: Record<string, string> = {
+  document: 'Documento',
+  small: 'Paquete pequeño',
+  large: 'Paquete grande',
+  pallet: 'Pallet',
+};
+
 const ACTIVE_STATUSES = [JobStatus.ACCEPTED, JobStatus.PICKED_UP, JobStatus.IN_TRANSIT];
 const PROGRESS: Record<string, number> = {
   [JobStatus.PENDING]: 5,
@@ -56,7 +63,7 @@ const PROGRESS: Record<string, number> = {
           <span class="col col--id">#{{ job.id.slice(0, 8).toUpperCase() }}</span>
           <span class="col col--date">{{ job.createdAt | date: 'short' }}</span>
           <span class="col col--route">{{ job.pickup.city }} → {{ job.dropoff.city }}</span>
-          <span class="col col--detail">{{ job.notes || '—' }}</span>
+          <span class="col col--detail">{{ packageTypeLabel(job.packageType) }}</span>
           <span class="col col--status"><vexa-status-chip [status]="job.status" /></span>
           <span class="col col--earnings">\${{ job.price | number: '1.2-2' }}</span>
           <span class="col col--progress">
@@ -125,5 +132,9 @@ export class DeliveriesList {
 
   constructor() {
     this.jobs.list({ pageSize: 50 }).subscribe((page) => this.page.set(page));
+  }
+
+  protected packageTypeLabel(type: string | undefined): string {
+    return type ? (PACKAGE_TYPE_LABELS[type] ?? type) : '—';
   }
 }

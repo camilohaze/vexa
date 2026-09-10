@@ -44,6 +44,9 @@ const STEP_LABEL: Record<string, string> = {
           <h2 class="vexa-h5">Información personal</h2>
           <div class="row"><span>Nombre completo</span><strong>{{ auth.user()?.fullName }}</strong></div>
           <div class="row"><span>Correo electrónico</span><strong>{{ auth.user()?.email }}</strong></div>
+          @if (auth.user()?.phone; as phone) {
+            <div class="row"><span>Teléfono</span><strong>{{ phone }}</strong></div>
+          }
         </div>
 
         <div class="vexa-card">

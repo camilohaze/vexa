@@ -25,6 +25,7 @@ export interface User {
   email: string;
   fullName: string;
   avatarUrl?: string;
+  phone?: string;
   role: UserRole;
   provider: AuthProvider;
   createdAt: string;
