@@ -35,6 +35,12 @@ type Tab = 'invoices' | 'history';
         </div>
       </section>
 
+      <div class="filters-bar filters-bar--end">
+        <button type="button" class="export-btn" [disabled]="exportingInvoices()" (click)="exportInvoicesCsv()">
+          {{ exportingInvoices() ? 'Exportando…' : 'Exportar CSV consolidado' }}
+        </button>
+      </div>
+
       <div class="vexa-card table-card">
         <div class="table-header">
           <span class="col col--id">Factura</span>
@@ -151,6 +157,7 @@ type Tab = 'invoices' | 'history';
     .empty { padding: 16px 24px; color: var(--vexa-gray-500); }
 
     .filters-bar { display: flex; align-items: center; gap: 12px; margin-bottom: 16px; flex-wrap: wrap; }
+    .filters-bar--end { justify-content: flex-end; }
     .search {
       flex: 1 1 220px; padding: 10px 14px; border: 1px solid var(--vexa-gray-200); border-radius: var(--vexa-radius-sm);
       font: inherit; font-size: 14px;
@@ -181,6 +188,7 @@ export class Invoices {
   protected readonly historyTotal = signal(0);
   protected readonly historyStats = signal({ totalCount: 0, totalSpend: 0, avgTransportSeconds: 0 });
   protected readonly exporting = signal(false);
+  protected readonly exportingInvoices = signal(false);
   protected readonly historyPageSize = 20;
   private historyPageIndex = 0;
 
@@ -232,6 +240,21 @@ export class Invoices {
         this.historyTotal.set(page.total);
         this.historyStats.set(page.stats);
       });
+  }
+
+  protected exportInvoicesCsv() {
+    this.exportingInvoices.set(true);
+    const header = ['Factura', 'Período', 'Pagos incluidos', 'Estado', 'Monto (COP)'];
+    const rows = this.invoices().map((inv) => [`INV-${inv.period}`, inv.period, String(inv.count), 'Pagada', String(inv.total)]);
+    const csv = [header, ...rows].map((r) => r.map((cell) => `"${String(cell).replace(/"/g, '""')}"`).join(',')).join('\n');
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'facturas-vexa.csv';
+    a.click();
+    URL.revokeObjectURL(url);
+    this.exportingInvoices.set(false);
   }
 
   protected exportCsv() {
