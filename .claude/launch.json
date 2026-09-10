@@ -18,6 +18,18 @@
       "runtimeExecutable": "npx",
       "runtimeArgs": ["nx", "serve-static", "web-landing"],
       "port": 4400
+    },
+    {
+      "name": "web-admin",
+      "runtimeExecutable": "npx",
+      "runtimeArgs": ["nx", "serve-static", "web-admin"],
+      "port": 4300
+    },
+    {
+      "name": "web-courier",
+      "runtimeExecutable": "npx",
+      "runtimeArgs": ["nx", "serve-static", "web-courier"],
+      "port": 4401
     }
   ]
 }

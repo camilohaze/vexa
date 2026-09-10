@@ -145,15 +145,17 @@ import { NavItem } from '../models/nav-item';
     .shell__nav { display: flex; flex-direction: column; gap: 2px; }
     .shell__nav a {
       border-radius: var(--vexa-radius-sm); color: var(--vexa-sidebar-muted);
-      --mdc-list-list-item-label-text-color: var(--vexa-sidebar-muted);
       --mat-icon-color: var(--vexa-sidebar-muted);
     }
+    .shell__nav a mat-icon { color: var(--vexa-sidebar-muted) !important; }
+    .shell__nav a [matListItemTitle] { color: var(--vexa-sidebar-muted) !important; }
     .shell__nav a.active {
       background: var(--vexa-sidebar-active);
       color: #fff;
-      --mdc-list-list-item-label-text-color: #fff;
       --mat-icon-color: #fff;
     }
+    .shell__nav a.active mat-icon { color: #fff !important; }
+    .shell__nav a.active [matListItemTitle] { color: #fff !important; }
 
     .shell__spacer { flex: 1 1 auto; }
 
