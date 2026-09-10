@@ -25,9 +25,12 @@ const NAV: NavItem[] = [
   imports: [RouterModule, Shell],
   template: `
     <vexa-shell
-      title="Vexa Admin"
+      title="Vexa"
+      badge="ADMIN"
       [navItems]="nav"
       [userName]="auth.user()?.fullName"
+      roleLabel="Administrador"
+      notificationsRoute="/notifications"
       (logout)="auth.logout()"
     >
       <router-outlet />
