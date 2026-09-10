@@ -1,4 +1,5 @@
-import { computed, Injectable, signal } from '@angular/core';
+import { computed, inject, Injectable, signal } from '@angular/core';
+import { Router } from '@angular/router';
 import { AuthProvider, AuthTokens, User } from '@vexa/shared';
 import { environment } from '../../../environments/environment';
 
@@ -7,6 +8,8 @@ const USER_KEY = 'vexa.user';
 
 @Injectable({ providedIn: 'root' })
 export class AuthStore {
+  private readonly router = inject(Router);
+
   readonly tokens = signal<AuthTokens | null>(this.read<AuthTokens>(STORAGE_KEY));
   readonly user = signal<User | null>(this.read<User>(USER_KEY));
   readonly isAuthenticated = computed(() => !!this.tokens()?.accessToken);
@@ -38,6 +41,7 @@ export class AuthStore {
     this.user.set(null);
     localStorage.removeItem(STORAGE_KEY);
     localStorage.removeItem(USER_KEY);
+    this.router.navigateByUrl('/auth/login');
   }
 
   private read<T>(key: string): T | null {
