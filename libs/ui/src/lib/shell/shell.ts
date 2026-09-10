@@ -48,7 +48,6 @@ import { NavItem } from '../models/nav-item';
             </a>
           }
         </mat-nav-list>
-        <div class="shell__spacer"></div>
         @if (userName()) {
           <div class="shell__user-card">
             <div class="shell__avatar">
@@ -116,11 +115,18 @@ import { NavItem } from '../models/nav-item';
 
     .shell__sidenav {
       width: 264px;
-      display: flex;
-      flex-direction: column;
       background: var(--vexa-sidebar-bg);
       color: var(--vexa-sidebar-text);
       border-right: none;
+    }
+    /* Material wraps projected content in its own scrolling container, which would
+       otherwise scroll the brand + user-card away with the nav list on tall menus
+       (e.g. admin's 14 items). Turn that inner container into the flex column instead,
+       so only the nav list scrolls and the user card stays pinned at the bottom. */
+    .shell__sidenav ::ng-deep .mat-drawer-inner-container {
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
       padding: 16px 12px;
       box-sizing: border-box;
     }
@@ -142,7 +148,7 @@ import { NavItem } from '../models/nav-item';
       background: var(--vexa-sidebar-active); padding: 3px 8px; border-radius: var(--vexa-radius-pill);
     }
 
-    .shell__nav { display: flex; flex-direction: column; gap: 2px; }
+    .shell__nav { display: flex; flex-direction: column; gap: 2px; flex: 1 1 auto; overflow-y: auto; min-height: 0; }
     .shell__nav a {
       border-radius: var(--vexa-radius-sm); color: var(--vexa-sidebar-muted);
       --mat-icon-color: var(--vexa-sidebar-muted);
@@ -157,12 +163,12 @@ import { NavItem } from '../models/nav-item';
     .shell__nav a.active mat-icon { color: #fff !important; }
     .shell__nav a.active [matListItemTitle] { color: #fff !important; }
 
-    .shell__spacer { flex: 1 1 auto; }
-
     .shell__user-card {
       display: flex; align-items: center; gap: 10px;
       padding: 10px; border-radius: var(--vexa-radius-md);
       background: var(--vexa-sidebar-active);
+      flex: none;
+      margin-top: 8px;
     }
     .shell__avatar {
       width: 36px; height: 36px; border-radius: 50%; flex: none; overflow: hidden;
