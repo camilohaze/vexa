@@ -2,10 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
-import 'package:mapbox_maps_flutter/mapbox_maps_flutter.dart';
 
 import '../../../app/router.dart';
-import '../../../core/config/env.dart';
+import '../../../core/navigation/external_navigation.dart';
 import '../../../core/theme/vexa_colors.dart';
 import '../domain/job.dart';
 import '../../tracking/providers.dart';
@@ -46,60 +45,19 @@ class _JobDetail extends ConsumerWidget {
     final refCode = 'VX-${job.id.substring(0, job.id.length.clamp(0, 6)).toUpperCase()}';
 
     return Scaffold(
-      body: Column(
-        children: [
-          // Mapa con overlay "Est. 25 mins • 6.4 mi"
-          Stack(
-            children: [
-              SizedBox(
-                height: 220,
-                width: double.infinity,
-                child: Env.hasMapbox
-                    ? _JobMap(job: job)
-                    : Container(color: VexaColors.gray200),
-              ),
-              Positioned(
-                top: MediaQuery.paddingOf(context).top + 8,
-                left: 12,
-                child: CircleAvatar(
-                  backgroundColor: Colors.white,
-                  child: BackButton(
-                    color: VexaColors.gray800,
-                    onPressed: () => context.pop(),
-                  ),
-                ),
-              ),
-              Positioned(
-                top: MediaQuery.paddingOf(context).top + 8,
-                left: 0,
-                right: 0,
-                child: Center(
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(
-                        horizontal: 14, vertical: 8),
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.circular(999),
-                      boxShadow: const [
-                        BoxShadow(color: Colors.black12, blurRadius: 8),
-                      ],
-                    ),
-                    child: Text(
-                      job.distanceKm != null
-                          ? 'Est. 25 min • ${job.distanceKm!.toStringAsFixed(1)} km'
-                          : 'Calculando ruta…',
-                      style: const TextStyle(
-                          fontSize: 12, fontWeight: FontWeight.w600),
-                    ),
-                  ),
-                ),
-              ),
-            ],
-          ),
-          Expanded(
-            child: ListView(
-              padding: const EdgeInsets.all(20),
-              children: [
+      appBar: AppBar(
+        leading: BackButton(onPressed: () => context.pop()),
+        title: Text(
+          job.durationMinutes != null && job.distanceKm != null
+              ? '~${job.durationMinutes} min • ${job.distanceKm!.toStringAsFixed(1)} km'
+              : 'Detalle del pedido',
+        ),
+      ),
+      body: SafeArea(
+        top: false,
+        child: ListView(
+          padding: const EdgeInsets.all(20),
+          children: [
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
@@ -155,10 +113,8 @@ class _JobDetail extends ConsumerWidget {
                 const SizedBox(height: 24),
                 ..._actions(context, ref),
                 const SizedBox(height: 16),
-              ],
-            ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
@@ -196,9 +152,10 @@ class _JobDetail extends ConsumerWidget {
           ),
         ],
       JobStatus.accepted => [
-          FilledButton(
-            onPressed: () => context.push(AppRoutes.jobNavigate(job.id)),
-            child: const Text('Iniciar navegación'),
+          FilledButton.icon(
+            onPressed: () => openExternalNavigation(job.pickup),
+            icon: const Icon(Icons.map_outlined, size: 18),
+            label: const Text('Navegar en Google Maps'),
           ),
           const SizedBox(height: 12),
           OutlinedButton.icon(
@@ -329,31 +286,6 @@ class _InfoCell extends StatelessWidget {
               style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600)),
         ],
       ),
-    );
-  }
-}
-
-class _JobMap extends StatelessWidget {
-  const _JobMap({required this.job});
-
-  final Job job;
-
-  @override
-  Widget build(BuildContext context) {
-    return MapWidget(
-      viewport: CameraViewportState(
-        center: Point(
-          coordinates: Position.named(
-            lng: job.pickup.lng,
-            lat: job.pickup.lat,
-          ),
-        ),
-        zoom: 12.5,
-      ),
-      onMapCreated: (controller) {
-        controller.location
-            .updateSettings(LocationComponentSettings(enabled: true));
-      },
     );
   }
 }

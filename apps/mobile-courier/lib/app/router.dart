@@ -25,7 +25,6 @@ import '../features/jobs/presentation/job_board_page.dart';
 import '../features/jobs/presentation/job_detail_page.dart';
 import '../features/jobs/presentation/pickup_confirmation_page.dart';
 import '../features/jobs/presentation/proof_of_delivery_page.dart';
-import '../features/jobs/presentation/route_navigation_page.dart';
 import '../features/notifications/presentation/notification_settings_page.dart';
 import '../features/profile/presentation/profile_page.dart';
 import '../features/rewards/presentation/refer_page.dart';
@@ -71,7 +70,6 @@ abstract final class AppRoutes {
   static String job(String id) => '/jobs/$id';
   static String jobChat(String id) => '/jobs/$id/chat';
   static String jobAccepted(String id) => '/jobs/$id/accepted';
-  static String jobNavigate(String id) => '/jobs/$id/navigate';
   static String jobPickup(String id) => '/jobs/$id/pickup';
   static String jobDelivery(String id) => '/jobs/$id/delivery';
   static String jobProof(String id) => '/jobs/$id/proof';
@@ -182,11 +180,6 @@ final routerProvider = Provider<GoRouter>((ref) {
         path: '/jobs/:id/accepted',
         builder: (context, state) =>
             DeliveryAcceptedPage(jobId: state.pathParameters['id']!),
-      ),
-      GoRoute(
-        path: '/jobs/:id/navigate',
-        builder: (context, state) =>
-            RouteNavigationPage(jobId: state.pathParameters['id']!),
       ),
       GoRoute(
         path: '/jobs/:id/pickup',

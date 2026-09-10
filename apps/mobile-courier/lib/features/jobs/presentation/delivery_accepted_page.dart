@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../app/router.dart';
+import '../../../core/navigation/external_navigation.dart';
 import '../../../core/theme/vexa_colors.dart';
 import '../providers.dart';
 
@@ -107,10 +108,10 @@ class _DeliveryAcceptedPageState extends ConsumerState<DeliveryAcceptedPage> {
                   ),
                 ),
               const Spacer(),
-              FilledButton(
-                onPressed: () =>
-                    context.push(AppRoutes.jobNavigate(widget.jobId)),
-                child: const Text('Iniciar navegación'),
+              FilledButton.icon(
+                onPressed: job == null ? null : () => openExternalNavigation(job.pickup),
+                icon: const Icon(Icons.map_outlined, size: 18),
+                label: const Text('Navegar en Google Maps'),
               ),
               const SizedBox(height: 12),
               OutlinedButton(

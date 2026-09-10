@@ -18,12 +18,12 @@ dependencies:
   firebase_core: ^3.8.1
   firebase_messaging: ^15.1.6
   flutter_secure_storage: ^9.2.2
-  mapbox_maps_flutter: ^2.4.0
   intl: ^0.20.1
   flutter_dotenv: ^5.2.1
   google_fonts: ^8.1.0
   image_picker: ^1.1.2
   app_links: ^6.3.3
+  url_launcher: ^6.3.2
 
 dev_dependencies:
   flutter_test:

@@ -75,6 +75,7 @@ class Job {
     required this.createdAt,
     this.courierId,
     this.distanceMeters,
+    this.durationSeconds,
     this.notes,
     this.proofOfDeliveryUrl,
     this.acceptedAt,
@@ -90,6 +91,7 @@ class Job {
         dropoff: Address.fromJson(_map(json['dropoff'])),
         price: (json['price'] as num?)?.toDouble() ?? 0,
         distanceMeters: (json['distanceMeters'] as num?)?.toDouble(),
+        durationSeconds: (json['durationSeconds'] as num?)?.toDouble(),
         notes: json['notes'] as String?,
         proofOfDeliveryUrl: json['proofOfDeliveryUrl'] as String?,
         createdAt: _date(json['createdAt']) ?? DateTime.now(),
@@ -105,6 +107,7 @@ class Job {
   final Address dropoff;
   final double price;
   final double? distanceMeters;
+  final double? durationSeconds;
   final String? notes;
   final String? proofOfDeliveryUrl;
   final DateTime createdAt;
@@ -113,6 +116,9 @@ class Job {
 
   double? get distanceKm =>
       distanceMeters == null ? null : distanceMeters! / 1000;
+
+  int? get durationMinutes =>
+      durationSeconds == null ? null : (durationSeconds! / 60).ceil();
 
   Job copyWith({
     JobStatus? status,
@@ -130,6 +136,7 @@ class Job {
         dropoff: dropoff,
         price: price,
         distanceMeters: distanceMeters,
+        durationSeconds: durationSeconds,
         notes: notes,
         proofOfDeliveryUrl: proofOfDeliveryUrl ?? this.proofOfDeliveryUrl,
         createdAt: createdAt,
@@ -146,6 +153,7 @@ class Job {
         'dropoff': dropoff.toJson(),
         'price': price,
         'distanceMeters': distanceMeters,
+        'durationSeconds': durationSeconds,
         'notes': notes,
         'proofOfDeliveryUrl': proofOfDeliveryUrl,
         'createdAt': createdAt.toUtc().toIso8601String(),
