@@ -24,19 +24,19 @@ export class PaymentMethodEntity {
   @Column()
   label!: string;
 
-  @Column({ nullable: true })
+  @Column({ type: 'varchar', nullable: true })
   sub?: string | null;
 
   @Column({ name: 'is_default', default: false })
   isDefault!: boolean;
 
-  @Column({ name: 'last4', nullable: true })
+  @Column({ name: 'last4', type: 'varchar', nullable: true })
   last4?: string | null;
 
-  @Column({ name: 'brand', nullable: true })
+  @Column({ name: 'brand', type: 'varchar', nullable: true })
   brand?: string | null;
 
-  @Column({ name: 'provider_token', nullable: true })
+  @Column({ name: 'provider_token', type: 'uuid', nullable: true })
   providerToken?: string | null;
 
   @CreateDateColumn({ name: 'created_at', type: 'timestamptz' })

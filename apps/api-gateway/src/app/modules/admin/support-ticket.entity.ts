@@ -36,7 +36,7 @@ export class SupportTicketEntity {
   @Column({ name: 'sla_hours', type: 'int', default: 24 })
   slaHours!: number;
 
-  @Column({ name: 'assigned_to', nullable: true })
+  @Column({ name: 'assigned_to', type: 'uuid', nullable: true })
   assignedTo?: string | null;
 
   @CreateDateColumn({ name: 'created_at', type: 'timestamptz' })

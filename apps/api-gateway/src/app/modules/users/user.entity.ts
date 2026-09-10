@@ -23,7 +23,7 @@ export class UserEntity {
   @Column({ name: 'avatar_url', nullable: true })
   avatarUrl?: string;
 
-  @Column({ nullable: true })
+  @Column({ type: 'varchar', nullable: true })
   phone?: string;
 
   @Column({ name: 'password_hash', nullable: true, select: false })
@@ -41,7 +41,7 @@ export class UserEntity {
   @Column({ name: 'provider_id' })
   providerId!: string;
 
-  @Column({ name: 'refresh_token_id', nullable: true })
+  @Column({ name: 'refresh_token_id', type: 'uuid', nullable: true })
   refreshTokenId?: string | null;
 
   @Column({ name: 'is_active', default: true })

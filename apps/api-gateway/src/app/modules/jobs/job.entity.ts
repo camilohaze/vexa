@@ -27,7 +27,7 @@ export class JobEntity {
   company!: CompanyEntity;
 
   @Index()
-  @Column({ name: 'courier_id', nullable: true })
+  @Column({ name: 'courier_id', type: 'uuid', nullable: true })
   courierId?: string | null;
 
   @ManyToOne(() => CourierEntity, { nullable: true, onDelete: 'SET NULL' })
@@ -70,7 +70,7 @@ export class JobEntity {
   @Column({ type: 'text', nullable: true })
   notes?: string | null;
 
-  @Column({ name: 'proof_of_delivery_url', nullable: true })
+  @Column({ name: 'proof_of_delivery_url', type: 'varchar', nullable: true })
   proofOfDeliveryUrl?: string | null;
 
   @Column({ name: 'rating_score', type: 'int', nullable: true })

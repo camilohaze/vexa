@@ -10,7 +10,7 @@ export class SupportArticleEntity {
   @Column({ type: 'enum', enum: ['faq', 'help', 'legal'] })
   type!: SupportArticleType;
 
-  @Column({ nullable: true })
+  @Column({ type: 'varchar', nullable: true })
   category?: string | null;
 
   @Column()

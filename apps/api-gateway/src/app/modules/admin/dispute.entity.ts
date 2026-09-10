@@ -24,7 +24,7 @@ export class DisputeEntity {
   @PrimaryGeneratedColumn('uuid')
   id!: string;
 
-  @Column({ name: 'job_id', nullable: true })
+  @Column({ name: 'job_id', type: 'uuid', nullable: true })
   jobId?: string | null;
 
   @Column({ name: 'opened_by' })
@@ -42,7 +42,7 @@ export class DisputeEntity {
   @Column({ type: 'enum', enum: DisputePriority, default: DisputePriority.MEDIUM })
   priority!: DisputePriority;
 
-  @Column({ name: 'assigned_to', nullable: true })
+  @Column({ name: 'assigned_to', type: 'uuid', nullable: true })
   assignedTo?: string | null;
 
   @CreateDateColumn({ name: 'created_at', type: 'timestamptz' })

@@ -49,7 +49,7 @@ export class CourierEntity {
   @Column({ name: 'last_location_at', type: 'timestamptz', nullable: true })
   lastLocationAt?: Date | null;
 
-  @Column({ name: 'fcm_token', nullable: true })
+  @Column({ name: 'fcm_token', type: 'varchar', nullable: true })
   fcmToken?: string | null;
 
   /** Estado de verificación: { identity, vehicle, insurance, background } →

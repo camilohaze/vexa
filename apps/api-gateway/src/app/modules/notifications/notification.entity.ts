@@ -19,10 +19,10 @@ export class NotificationEntity {
   @Column({ name: 'scope', type: 'enum', enum: ['global', 'company', 'courier'] })
   scope!: NotificationScope;
 
-  @Column({ name: 'company_id', nullable: true })
+  @Column({ name: 'company_id', type: 'uuid', nullable: true })
   companyId?: string | null;
 
-  @Column({ name: 'courier_id', nullable: true })
+  @Column({ name: 'courier_id', type: 'uuid', nullable: true })
   courierId?: string | null;
 
   @Column({ type: 'enum', enum: UserRole, name: 'audience', nullable: true })
@@ -40,10 +40,10 @@ export class NotificationEntity {
   @Column({ name: 'is_read', default: false })
   isRead!: boolean;
 
-  @Column({ name: 'reference_id', nullable: true })
+  @Column({ name: 'reference_id', type: 'uuid', nullable: true })
   referenceId?: string | null;
 
-  @Column({ name: 'reference_type', nullable: true })
+  @Column({ name: 'reference_type', type: 'varchar', nullable: true })
   referenceType?: string | null;
 
   @CreateDateColumn({ name: 'created_at', type: 'timestamptz' })

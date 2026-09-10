@@ -31,7 +31,7 @@ export class PaymentEntity {
   @Column({ unique: true })
   reference!: string;
 
-  @Column({ name: 'provider_reference', nullable: true })
+  @Column({ name: 'provider_reference', type: 'varchar', nullable: true })
   providerReference?: string | null;
 
   @Column({ type: 'numeric', precision: 12, scale: 2 })
@@ -43,7 +43,7 @@ export class PaymentEntity {
   @Column({ type: 'enum', enum: PaymentStatus, default: PaymentStatus.PENDING })
   status!: PaymentStatus;
 
-  @Column({ name: 'checkout_url', nullable: true })
+  @Column({ name: 'checkout_url', type: 'varchar', nullable: true })
   checkoutUrl?: string | null;
 
   @Column({ type: 'jsonb', nullable: true })
