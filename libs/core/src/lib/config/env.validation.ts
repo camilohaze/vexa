@@ -1,4 +1,4 @@
-import { plainToInstance } from 'class-transformer';
+import { plainToInstance, Transform } from 'class-transformer';
 import {
   IsEnum,
   IsInt,
@@ -23,6 +23,7 @@ export class BaseEnv {
   @IsInt()
   @Min(1)
   @Max(65535)
+  @Transform(({ value }) => (typeof value === 'number' ? value : parseInt(String(value), 10) || 3000))
   PORT = 3000;
 
   @IsString()
