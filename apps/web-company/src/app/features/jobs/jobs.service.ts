@@ -33,11 +33,29 @@ export class JobsService {
     return this.api.post<Job>(`jobs/${id}/rate`, { score, comment });
   }
 
-  priceEstimate(params: { distanceMeters: number; weightKg?: number; priority?: 'standard' | 'express' }) {
+  priceEstimate(params: {
+    pickupLat: number;
+    pickupLng: number;
+    dropoffLat: number;
+    dropoffLng: number;
+    weightKg?: number;
+    priority?: 'standard' | 'express' | 'same_day';
+  }) {
     return this.api.get<{
       price: number;
       currency: string;
-      breakdown: { base: number; distance: number; weight: number; priorityMultiplier: number };
+      distanceMeters: number;
+      durationSeconds: number;
+      trafficAware: boolean;
+      breakdown: {
+        base: number;
+        distance: number;
+        time: number;
+        weight: number;
+        priorityMultiplier: number;
+        subtotal: number;
+        commission: number;
+      };
     }>('jobs/price-estimate', params as Record<string, string | number>);
   }
 }

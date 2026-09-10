@@ -103,11 +103,25 @@ export class CancelJobDto {
 }
 
 export class PriceEstimateQueryDto {
-  @ApiProperty({ example: 4200, description: 'Distancia en metros' })
+  @ApiProperty({ example: 4.711 })
   @Type(() => Number)
-  @IsNumber()
-  @IsPositive()
-  distanceMeters!: number;
+  @IsLatitude()
+  pickupLat!: number;
+
+  @ApiProperty({ example: -74.0721 })
+  @Type(() => Number)
+  @IsLongitude()
+  pickupLng!: number;
+
+  @ApiProperty({ example: 4.65 })
+  @Type(() => Number)
+  @IsLatitude()
+  dropoffLat!: number;
+
+  @ApiProperty({ example: -74.1 })
+  @Type(() => Number)
+  @IsLongitude()
+  dropoffLng!: number;
 
   @ApiPropertyOptional({ example: 2, description: 'Peso en kg' })
   @IsOptional()
@@ -115,10 +129,10 @@ export class PriceEstimateQueryDto {
   @IsNumber()
   weightKg?: number;
 
-  @ApiPropertyOptional({ enum: ['standard', 'express'] })
+  @ApiPropertyOptional({ enum: ['standard', 'express', 'same_day'] })
   @IsOptional()
-  @IsIn(['standard', 'express'])
-  priority?: 'standard' | 'express';
+  @IsIn(['standard', 'express', 'same_day'])
+  priority?: 'standard' | 'express' | 'same_day';
 }
 
 export class SendMessageDto {

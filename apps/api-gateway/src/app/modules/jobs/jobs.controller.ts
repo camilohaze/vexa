@@ -25,7 +25,7 @@ export class JobsController {
   @Get('price-estimate')
   @Roles(UserRole.COMPANY, UserRole.ADMIN)
   priceEstimate(@Query() query: PriceEstimateQueryDto) {
-    return this.jobs.priceEstimate(query.distanceMeters, query.weightKg, query.priority);
+    return this.jobs.priceEstimate(query);
   }
 
   @Get(':id/receipt')

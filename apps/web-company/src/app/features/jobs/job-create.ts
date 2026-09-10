@@ -8,8 +8,8 @@ import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { Router } from '@angular/router';
+import { debounceTime } from 'rxjs';
 import { GeocodingResult, GeocodingService } from '@vexa/maps';
-import { PageHeader } from '@vexa/ui';
 import { environment } from '../../../environments/environment';
 import { JobsService } from './jobs.service';
 
@@ -26,7 +26,7 @@ const PRIORITIES = [
   { id: 'same_day', label: 'Mismo día', sub: 'Inmediato' },
 ] as const;
 
-/** Wizard de nuevo pedido (Figma: create-delivery → … → publish-delivery). */
+/** Figma: web-create-delivery */
 @Component({
   selector: 'vexa-job-create',
   imports: [
@@ -37,26 +37,27 @@ const PRIORITIES = [
     MatIconModule,
     MatInputModule,
     MatSnackBarModule,
-    PageHeader,
     ReactiveFormsModule,
   ],
   template: `
-    <vexa-page-header title="Nuevo pedido" subtitle="Crea una oferta de entrega en 5 pasos" />
+    <div class="stepper vexa-card">
+      @for (s of stepLabels; track s; let i = $index) {
+        <div class="stepper__item">
+          <span class="stepper__num" [class.stepper__num--on]="i <= step()">{{ i + 1 }}</span>
+          <span class="stepper__label" [class.stepper__label--on]="i <= step()">{{ s }}</span>
+          @if (i < stepLabels.length - 1) {
+            <mat-icon class="stepper__chevron">chevron_right</mat-icon>
+          }
+        </div>
+      }
+    </div>
 
-    <div class="wizard vexa-card">
-      <!-- Stepper de progreso -->
-      <div class="steps">
-        @for (s of stepLabels; track s; let i = $index) {
-          <div class="steps__bar" [class.steps__bar--on]="i <= step()"></div>
-        }
-      </div>
-
-      <form [formGroup]="form">
+    <div class="workspace">
+      <form [formGroup]="form" class="vexa-card form-panel">
         @switch (step()) {
-          <!-- Paso 1: tipo de paquete -->
+          <!-- Paso 1: detalles del paquete (tipo + descripción + peso + dimensiones + instrucciones) -->
           @case (0) {
-            <h2 class="vexa-h4">¿Qué vas a enviar?</h2>
-            <p class="vexa-body-sm muted">Selecciona el tamaño y la categoría del paquete.</p>
+            <h2 class="vexa-h4">Especificaciones del paquete</h2>
             <div class="type-grid">
               @for (t of packageTypes; track t.id) {
                 <button type="button" class="type-card"
@@ -73,56 +74,32 @@ const PRIORITIES = [
                 </button>
               }
             </div>
-            <mat-form-field class="w-full">
-              <mat-label>Peso estimado (kg)</mat-label>
-              <input matInput type="number" formControlName="weight" />
+            <mat-form-field appearance="outline" class="w-full">
+              <mat-label>Descripción del paquete</mat-label>
+              <input matInput formControlName="description" />
             </mat-form-field>
+            <div class="dims">
+              <mat-form-field appearance="outline"><mat-label>Peso (kg)</mat-label><input matInput type="number" formControlName="weight" /></mat-form-field>
+              <mat-form-field appearance="outline"><mat-label>Largo (cm)</mat-label><input matInput type="number" formControlName="dimL" /></mat-form-field>
+              <mat-form-field appearance="outline"><mat-label>Ancho</mat-label><input matInput type="number" formControlName="dimW" /></mat-form-field>
+              <mat-form-field appearance="outline"><mat-label>Alto</mat-label><input matInput type="number" formControlName="dimH" /></mat-form-field>
+            </div>
             <div class="toggles vexa-card">
               <h3 class="vexa-overline">Manejo especial</h3>
               <mat-checkbox formControlName="fragile">Artículo frágil</mat-checkbox>
               <mat-checkbox formControlName="refrigerated">Temperatura controlada</mat-checkbox>
             </div>
-          }
-
-          <!-- Paso 2: detalles -->
-          @case (1) {
-            <h2 class="vexa-h4">Detalles del paquete</h2>
-            <p class="vexa-body-sm muted">Dimensiones, prioridad e instrucciones.</p>
-            <mat-form-field class="w-full">
-              <mat-label>Descripción del paquete</mat-label>
-              <input matInput formControlName="description" />
-            </mat-form-field>
-            <div class="dims">
-              <mat-form-field><mat-label>Largo (cm)</mat-label><input matInput type="number" formControlName="dimL" /></mat-form-field>
-              <mat-form-field><mat-label>Ancho</mat-label><input matInput type="number" formControlName="dimW" /></mat-form-field>
-              <mat-form-field><mat-label>Alto</mat-label><input matInput type="number" formControlName="dimH" /></mat-form-field>
-            </div>
-            <h3 class="vexa-overline">Prioridad de entrega</h3>
-            <div class="priority-row">
-              @for (p of priorities; track p.id) {
-                <button type="button" class="priority"
-                    [class.priority--on]="form.controls.priority.value === p.id"
-                    (click)="form.controls.priority.setValue(p.id)">
-                  <strong>{{ p.label }}</strong>
-                  <small>{{ p.sub }}</small>
-                </button>
-              }
-            </div>
-            <mat-form-field class="w-full">
-              <mat-label>Fecha y hora de recogida preferida</mat-label>
-              <input matInput type="datetime-local" formControlName="pickupAt" />
-            </mat-form-field>
-            <mat-form-field class="w-full">
-              <mat-label>Instrucciones adicionales</mat-label>
+            <mat-form-field appearance="outline" class="w-full">
+              <mat-label>Instrucciones especiales</mat-label>
               <textarea matInput formControlName="notes" rows="2"></textarea>
             </mat-form-field>
           }
 
-          <!-- Paso 3: recogida -->
-          @case (2) {
+          <!-- Paso 2: recogida -->
+          @case (1) {
             <h2 class="vexa-h4">Punto de recogida</h2>
             <div formGroupName="pickup" class="grid">
-              <mat-form-field class="span2"><mat-label>Dirección</mat-label>
+              <mat-form-field appearance="outline" class="span2"><mat-label>Dirección</mat-label>
                 <input matInput formControlName="line1" /></mat-form-field>
               <button mat-stroked-button type="button" class="span2 geo-btn"
                   (click)="geocode('pickup')">
@@ -134,23 +111,27 @@ const PRIORITIES = [
                   }
                 </div>
               }
-              <mat-form-field><mat-label>Ciudad</mat-label><input matInput formControlName="city" /></mat-form-field>
-              <mat-form-field><mat-label>Estado/Depto</mat-label><input matInput formControlName="line2" /></mat-form-field>
-              <mat-form-field><mat-label>Latitud</mat-label><input matInput type="number" step="any" formControlName="lat" /></mat-form-field>
-              <mat-form-field><mat-label>Longitud</mat-label><input matInput type="number" step="any" formControlName="lng" /></mat-form-field>
+              <mat-form-field appearance="outline"><mat-label>Ciudad</mat-label><input matInput formControlName="city" /></mat-form-field>
+              <mat-form-field appearance="outline"><mat-label>Estado/Depto</mat-label><input matInput formControlName="line2" /></mat-form-field>
+              <mat-form-field appearance="outline"><mat-label>Latitud</mat-label><input matInput type="number" step="any" formControlName="lat" /></mat-form-field>
+              <mat-form-field appearance="outline"><mat-label>Longitud</mat-label><input matInput type="number" step="any" formControlName="lng" /></mat-form-field>
             </div>
             <h3 class="vexa-overline">Persona de contacto</h3>
             <div class="grid">
-              <mat-form-field><mat-label>Nombre</mat-label><input matInput formControlName="pickupContact" /></mat-form-field>
-              <mat-form-field><mat-label>Teléfono</mat-label><input matInput formControlName="pickupPhone" /></mat-form-field>
+              <mat-form-field appearance="outline"><mat-label>Nombre</mat-label><input matInput formControlName="pickupContact" /></mat-form-field>
+              <mat-form-field appearance="outline"><mat-label>Teléfono</mat-label><input matInput formControlName="pickupPhone" /></mat-form-field>
             </div>
+            <mat-form-field appearance="outline" class="w-full">
+              <mat-label>Fecha y hora de recogida preferida</mat-label>
+              <input matInput type="datetime-local" formControlName="pickupAt" />
+            </mat-form-field>
           }
 
-          <!-- Paso 4: destino -->
-          @case (3) {
+          <!-- Paso 3: destino -->
+          @case (2) {
             <h2 class="vexa-h4">Destino de entrega</h2>
             <div formGroupName="dropoff" class="grid">
-              <mat-form-field class="span2"><mat-label>Dirección</mat-label>
+              <mat-form-field appearance="outline" class="span2"><mat-label>Dirección</mat-label>
                 <input matInput formControlName="line1" /></mat-form-field>
               <button mat-stroked-button type="button" class="span2 geo-btn"
                   (click)="geocode('dropoff')">
@@ -162,75 +143,119 @@ const PRIORITIES = [
                   }
                 </div>
               }
-              <mat-form-field><mat-label>Ciudad</mat-label><input matInput formControlName="city" /></mat-form-field>
-              <mat-form-field><mat-label>Estado/Depto</mat-label><input matInput formControlName="line2" /></mat-form-field>
-              <mat-form-field><mat-label>Latitud</mat-label><input matInput type="number" step="any" formControlName="lat" /></mat-form-field>
-              <mat-form-field><mat-label>Longitud</mat-label><input matInput type="number" step="any" formControlName="lng" /></mat-form-field>
+              <mat-form-field appearance="outline"><mat-label>Ciudad</mat-label><input matInput formControlName="city" /></mat-form-field>
+              <mat-form-field appearance="outline"><mat-label>Estado/Depto</mat-label><input matInput formControlName="line2" /></mat-form-field>
+              <mat-form-field appearance="outline"><mat-label>Latitud</mat-label><input matInput type="number" step="any" formControlName="lat" /></mat-form-field>
+              <mat-form-field appearance="outline"><mat-label>Longitud</mat-label><input matInput type="number" step="any" formControlName="lng" /></mat-form-field>
             </div>
             <h3 class="vexa-overline">Destinatario</h3>
             <div class="grid">
-              <mat-form-field><mat-label>Nombre</mat-label><input matInput formControlName="dropoffContact" /></mat-form-field>
-              <mat-form-field><mat-label>Teléfono</mat-label><input matInput formControlName="dropoffPhone" /></mat-form-field>
+              <mat-form-field appearance="outline"><mat-label>Nombre</mat-label><input matInput formControlName="dropoffContact" /></mat-form-field>
+              <mat-form-field appearance="outline"><mat-label>Teléfono</mat-label><input matInput formControlName="dropoffPhone" /></mat-form-field>
             </div>
-            <mat-form-field class="w-full">
+            <mat-form-field appearance="outline" class="w-full">
               <mat-label>Instrucciones de entrega</mat-label>
               <input matInput formControlName="dropoffNotes" />
             </mat-form-field>
           }
 
-          <!-- Paso 5: precio y revisión -->
-          @case (4) {
-            <div class="review__route vexa-card">
-              <p><mat-icon class="dot dot--pickup">trip_origin</mat-icon> {{ form.controls.pickup.controls.line1.value || '—' }}</p>
-              <p><mat-icon class="dot dot--dropoff">location_on</mat-icon> {{ form.controls.dropoff.controls.line1.value || '—' }}</p>
-              <small class="muted">Distancia estimada · Tiempo aprox.</small>
+          <!-- Paso 4: precio -->
+          @case (3) {
+            <h2 class="vexa-h4">Precio del envío</h2>
+            <p class="vexa-body-sm muted">Ajusta tu oferta según la prioridad de entrega.</p>
+            <h3 class="vexa-overline">Prioridad de entrega</h3>
+            <div class="priority-row">
+              @for (p of priorities; track p.id) {
+                <button type="button" class="priority"
+                    [class.priority--on]="form.controls.priority.value === p.id"
+                    (click)="form.controls.priority.setValue(p.id)">
+                  <strong>{{ p.label }}</strong>
+                  <small>{{ p.sub }}</small>
+                </button>
+              }
             </div>
-            <div class="price-box">
-              <span class="vexa-overline">Precio sugerido del mercado</span>
-              <strong class="price-box__range">{{ estimate()?.price ?? costsTotal() | currency:'COP':'symbol-narrow':'1.0-0' }} – {{ (estimate()?.price ?? costsTotal()) * 1.3 | currency:'COP':'symbol-narrow':'1.0-0' }}</strong>
-              <small class="muted">Basado en la demanda actual y la prioridad</small>
-            </div>
-            <mat-form-field class="w-full">
+            <mat-form-field appearance="outline" class="w-full">
               <mat-label>Tu oferta (COP)</mat-label>
               <input matInput type="number" formControlName="price" />
             </mat-form-field>
-            <div class="costs vexa-card">
-              <h3 class="vexa-overline">Desglose de costos</h3>
-              <div class="costs__row"><span>Tarifa base</span><span>{{ costs().base | currency:'COP':'symbol-narrow':'1.0-0' }}</span></div>
-              <div class="costs__row"><span>Distancia</span><span>{{ costs().distance | currency:'COP':'symbol-narrow':'1.0-0' }}</span></div>
-              <div class="costs__row"><span>Recargo por peso</span><span>{{ costs().weight | currency:'COP':'symbol-narrow':'1.0-0' }}</span></div>
-              @if (form.controls.priority.value === 'express' || form.controls.priority.value === 'same_day') {
-                <div class="costs__row"><span>Prioridad</span><span>{{ costs().priority | currency:'COP':'symbol-narrow':'1.0-0' }}</span></div>
-              }
+            <p class="price-notice">El precio final se confirma al verificar el peso en la recogida.</p>
+          }
+
+          <!-- Paso 5: revisión -->
+          @case (4) {
+            <h2 class="vexa-h4">Revisa y publica</h2>
+            <div class="review__route vexa-card">
+              <p><mat-icon class="dot dot--pickup">trip_origin</mat-icon> {{ form.controls.pickup.controls.line1.value || '—' }}</p>
+              <p><mat-icon class="dot dot--dropoff">location_on</mat-icon> {{ form.controls.dropoff.controls.line1.value || '—' }}</p>
+            </div>
+            <div class="review__price vexa-card">
+              <span class="vexa-overline">Tu oferta</span>
+              <strong>{{ form.controls.price.value | currency: 'COP':'symbol-narrow':'1.0-0' }}</strong>
             </div>
             <mat-checkbox formControlName="acceptTerms">Acepto los términos de servicio de Vexa</mat-checkbox>
           }
         }
+
+        <div class="form-panel__actions">
+          @if (step() > 0) {
+            <button mat-stroked-button type="button" (click)="step.set(step() - 1)">Atrás</button>
+          } @else {
+            <span></span>
+          }
+          @if (step() < 4) {
+            <button mat-flat-button type="button" (click)="next()">Siguiente</button>
+          } @else {
+            <div class="final-actions">
+              <button mat-stroked-button type="button" (click)="saveDraft()">Guardar borrador</button>
+              <button mat-flat-button type="button" [disabled]="!canPublish() || saving()" (click)="publish()">
+                {{ saving() ? 'Publicando…' : 'Publicar pedido' }}
+              </button>
+            </div>
+          }
+        </div>
       </form>
 
-      <div class="wizard__nav">
-        @if (step() > 0) {
-          <button mat-button type="button" (click)="step.set(step() - 1)">Atrás</button>
-        }
-        <span class="spacer"></span>
-        @if (step() < 4) {
-          <button mat-flat-button type="button" (click)="next()">
-            {{ step() === 4 ? '' : 'Siguiente' }}
-          </button>
-        } @else {
-          <button mat-stroked-button type="button" (click)="saveDraft()">Guardar borrador</button>
-          <button mat-flat-button type="button" [disabled]="!canPublish() || saving()" (click)="publish()">
-            {{ saving() ? 'Publicando…' : 'Publicar pedido' }}
-          </button>
-        }
-      </div>
+      <aside class="vexa-card summary-panel">
+        <h2 class="vexa-h5">Resumen estimado</h2>
+        <div class="summary-panel__notice">
+          El precio final se confirma al verificar el peso en la recogida.
+        </div>
+        <div class="breakdown">
+          <div class="breakdown__row"><span>Tarifa base</span><span>{{ costs().base | currency: 'COP':'symbol-narrow':'1.0-0' }}</span></div>
+          <div class="breakdown__row"><span>Distancia</span><span>{{ costs().distance | currency: 'COP':'symbol-narrow':'1.0-0' }}</span></div>
+          <div class="breakdown__row"><span>Tiempo estimado{{ estimate()?.trafficAware ? ' (con tráfico)' : '' }}</span><span>{{ costs().time | currency: 'COP':'symbol-narrow':'1.0-0' }}</span></div>
+          <div class="breakdown__row"><span>Recargo por peso</span><span>{{ costs().weight | currency: 'COP':'symbol-narrow':'1.0-0' }}</span></div>
+          @if (form.controls.priority.value !== 'standard') {
+            <div class="breakdown__row"><span>Prioridad</span><span>{{ costs().priority | currency: 'COP':'symbol-narrow':'1.0-0' }}</span></div>
+          }
+          <div class="breakdown__row"><span>Comisión plataforma</span><span>{{ costs().commission | currency: 'COP':'symbol-narrow':'1.0-0' }}</span></div>
+          <hr />
+          <div class="breakdown__total">
+            <span>Total estimado</span>
+            <strong>{{ costsTotal() | currency: 'COP':'symbol-narrow':'1.0-0' }}</strong>
+          </div>
+        </div>
+      </aside>
     </div>
   `,
   styles: `
-    .wizard { max-width: 720px; padding: 28px; }
-    .steps { display: flex; gap: 8px; margin-bottom: 28px; }
-    .steps__bar { flex: 1; height: 4px; border-radius: 2px; background: var(--vexa-gray-200); }
-    .steps__bar--on { background: var(--vexa-primary-600); }
+    .stepper { display: flex; align-items: center; gap: 8px; padding: 20px; margin-bottom: 24px; flex-wrap: wrap; }
+    .stepper__item { display: flex; align-items: center; gap: 8px; }
+    .stepper__num {
+      width: 24px; height: 24px; border-radius: 12px; display: grid; place-items: center;
+      background: var(--vexa-gray-200); color: var(--vexa-gray-600); font-size: 12px; font-weight: 700;
+    }
+    .stepper__num--on { background: var(--vexa-primary-600); color: #fff; }
+    .stepper__label { font-size: 14px; font-weight: 500; color: var(--vexa-gray-600); }
+    .stepper__label--on { color: var(--vexa-primary-600); font-weight: 600; }
+    .stepper__chevron { color: var(--vexa-gray-300); margin: 0 4px; font-size: 18px; width: 18px; height: 18px; }
+
+    .workspace { display: flex; gap: 24px; align-items: flex-start; }
+    @media (max-width: 1000px) { .workspace { flex-direction: column; } }
+    .form-panel { flex: 1 1 auto; min-width: 0; padding: 32px; display: flex; flex-direction: column; gap: 20px; }
+    .summary-panel { width: 380px; flex: none; padding: 24px; display: flex; flex-direction: column; gap: 20px; }
+    @media (max-width: 1000px) { .summary-panel { width: 100%; } }
+
     .w-full { width: 100%; }
     .muted { color: var(--vexa-gray-500); }
     .type-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; margin: 16px 0; }
@@ -244,9 +269,9 @@ const PRIORITIES = [
     }
     .type-card--on { border-color: var(--vexa-primary-600); background: var(--vexa-primary-50); }
     .type-card__check { margin-left: auto; color: var(--vexa-primary-600) !important; }
-    .toggles { padding: 16px; display: flex; flex-direction: column; gap: 4px; margin-top: 16px; }
+    .toggles { padding: 16px; display: flex; flex-direction: column; gap: 4px; margin-top: 8px; }
     .dims, .grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 0 12px; }
-    .dims { grid-template-columns: repeat(3, 1fr); }
+    .dims { grid-template-columns: repeat(4, 1fr); }
     .span2 { grid-column: span 2; }
     .geo-btn { justify-self: start; }
     .sugg { display: flex; flex-direction: column; border: 1px solid var(--vexa-gray-200); border-radius: 10px; overflow: hidden; }
@@ -260,21 +285,28 @@ const PRIORITIES = [
       small { font-size: 11px; color: var(--vexa-gray-500); }
     }
     .priority--on { border-color: var(--vexa-primary-600); background: var(--vexa-primary-50); }
-    .review__route { padding: 16px; margin-bottom: 16px; }
+    .review__route { padding: 16px; }
     .review__route p { display: flex; align-items: center; gap: 10px; margin: 0 0 8px; font-weight: 600; font-size: 14px; }
+    .review__route p:last-child { margin-bottom: 0; }
     .dot { font-size: 18px; width: 18px; height: 18px; }
     .dot--pickup { color: var(--vexa-primary-600); }
     .dot--dropoff { color: var(--vexa-error-500); }
-    .price-box {
-      padding: 20px; border-radius: 16px; background: var(--vexa-primary-50);
-      border: 1px solid var(--vexa-primary-200); margin-bottom: 16px;
-      display: flex; flex-direction: column; gap: 4px;
+    .review__price { padding: 16px; display: flex; flex-direction: column; gap: 4px; }
+    .review__price strong { font-size: 24px; color: var(--vexa-primary-600); }
+    .price-notice { font-size: 12px; color: var(--vexa-gray-500); margin: 0; }
+
+    .form-panel__actions { display: flex; align-items: center; justify-content: space-between; padding-top: 12px; }
+    .final-actions { display: flex; gap: 12px; }
+
+    .summary-panel__notice {
+      background: var(--vexa-warning-50); border: 1px solid var(--vexa-warning-300);
+      color: var(--vexa-warning-900); font-size: 12px; padding: 12px; border-radius: var(--vexa-radius-sm);
     }
-    .price-box__range { font-size: 24px; font-weight: 800; color: var(--vexa-primary-700); }
-    .costs { padding: 16px; margin: 12px 0; }
-    .costs__row { display: flex; justify-content: space-between; font-size: 13px; padding: 4px 0; }
-    .wizard__nav { display: flex; gap: 12px; margin-top: 24px; }
-    .spacer { flex: 1; }
+    .breakdown { display: flex; flex-direction: column; gap: 12px; }
+    .breakdown__row { display: flex; justify-content: space-between; font-size: 14px; color: var(--vexa-gray-600); }
+    .breakdown hr { border: none; border-top: 1px solid var(--vexa-gray-200); margin: 0; }
+    .breakdown__total { display: flex; justify-content: space-between; align-items: center; font-weight: 700; }
+    .breakdown__total strong { font-size: 22px; color: var(--vexa-primary-600); }
   `,
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
@@ -292,12 +324,22 @@ export class JobCreate {
 
   protected readonly estimate = signal<{
     price: number;
-    breakdown: { base: number; distance: number; weight: number; priorityMultiplier: number };
+    durationSeconds: number;
+    trafficAware: boolean;
+    breakdown: {
+      base: number;
+      distance: number;
+      time: number;
+      weight: number;
+      priorityMultiplier: number;
+      subtotal: number;
+      commission: number;
+    };
   } | null>(null);
 
   protected readonly step = signal(0);
   protected readonly saving = signal(false);
-  protected readonly stepLabels = ['Tipo', 'Detalles', 'Recogida', 'Destino', 'Precio'];
+  protected readonly stepLabels = ['Paquete', 'Recogida', 'Destino', 'Precio', 'Revisión'];
   protected readonly packageTypes = PACKAGE_TYPES;
   protected readonly priorities = PRIORITIES;
 
@@ -338,19 +380,26 @@ export class JobCreate {
 
   protected readonly costs = computed(() => {
     const e = this.estimate();
-    if (!e) return { base: 0, distance: 0, weight: 0, priority: 0 };
+    if (!e) return { base: 0, distance: 0, time: 0, weight: 0, priority: 0, commission: 0 };
     return {
       base: e.breakdown.base,
       distance: e.breakdown.distance,
+      time: e.breakdown.time,
       weight: e.breakdown.weight,
       priority: Math.round(
-        (e.breakdown.base + e.breakdown.distance + e.breakdown.weight) *
+        (e.breakdown.base + e.breakdown.distance + e.breakdown.time + e.breakdown.weight) *
           (e.breakdown.priorityMultiplier - 1)
       ),
+      commission: e.breakdown.commission,
     };
   });
 
   protected readonly costsTotal = computed(() => this.estimate()?.price ?? 0);
+
+  constructor() {
+    this.loadEstimate();
+    this.form.valueChanges.pipe(debounceTime(400)).subscribe(() => this.loadEstimate());
+  }
 
   protected canPublish() {
     return this.form.valid && this.form.controls.acceptTerms.value;
@@ -375,31 +424,21 @@ export class JobCreate {
     this.suggestions.update((s) => ({ ...s, [field]: [] }));
   }
 
-  /** Haversine entre recogida y destino para el estimador. */
-  private distanceMeters(): number {
-    const a = this.form.controls.pickup.getRawValue();
-    const b = this.form.controls.dropoff.getRawValue();
-    const rad = Math.PI / 180;
-    const dLat = (b.lat - a.lat) * rad;
-    const dLng = (b.lng - a.lng) * rad;
-    const h =
-      Math.sin(dLat / 2) ** 2 +
-      Math.cos(a.lat * rad) * Math.cos(b.lat * rad) * Math.sin(dLng / 2) ** 2;
-    return Math.round(2 * 6371_000 * Math.asin(Math.sqrt(h)));
-  }
-
   private loadEstimate() {
     const v = this.form.getRawValue();
     this.jobs
       .priceEstimate({
-        distanceMeters: this.distanceMeters(),
+        pickupLat: v.pickup.lat,
+        pickupLng: v.pickup.lng,
+        dropoffLat: v.dropoff.lat,
+        dropoffLng: v.dropoff.lng,
         weightKg: v.weight,
-        priority: v.priority === 'standard' ? 'standard' : 'express',
+        priority: v.priority as 'standard' | 'express' | 'same_day',
       })
       .subscribe({
         next: (e) => {
           this.estimate.set(e);
-          if (!v.price) this.form.controls.price.setValue(e.price);
+          if (!v.price) this.form.controls.price.setValue(e.price, { emitEvent: false });
         },
         error: () => this.estimate.set(null),
       });
@@ -407,7 +446,6 @@ export class JobCreate {
 
   next() {
     this.step.update((s) => Math.min(4, s + 1));
-    if (this.step() === 4) this.loadEstimate();
   }
 
   saveDraft() {

@@ -14,9 +14,15 @@ export class PriceConfigEntity {
   @Column({ name: 'per_kg', type: 'decimal', precision: 10, scale: 2, default: 500 })
   perKg!: number;
 
+  @Column({ name: 'per_minute', type: 'decimal', precision: 10, scale: 2, default: 120 })
+  perMinute!: number;
+
   @Column({ name: 'express_multiplier', type: 'decimal', precision: 5, scale: 2, default: 1.35 })
   expressMultiplier!: number;
 
-  @Column({ name: 'same_day_multiplier', type: 'decimal', precision: 5, scale: 2, default: 1.35 })
+  @Column({ name: 'same_day_multiplier', type: 'decimal', precision: 5, scale: 2, default: 1.6 })
   sameDayMultiplier!: number;
+
+  @Column({ name: 'commission_percent', type: 'decimal', precision: 5, scale: 2, default: 20 })
+  commissionPercent!: number;
 }

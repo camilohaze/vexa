@@ -20,7 +20,8 @@ import {
 } from '@vexa/shared';
 import { CompaniesService } from '../companies/companies.service';
 import { CouriersService } from '../couriers/couriers.service';
-import { CancelJobDto, CompleteJobDto, CreateJobDto, ListJobsQueryDto, RateJobDto, SendMessageDto } from './dto';
+import { CancelJobDto, CompleteJobDto, CreateJobDto, ListJobsQueryDto, PriceEstimateQueryDto, RateJobDto, SendMessageDto } from './dto';
+import { DirectionsService } from './directions.service';
 import { JobEntity } from './job.entity';
 import { JobMessageEntity } from './message.entity';
 import { PriceConfigEntity } from './price-config.entity';
@@ -47,7 +48,8 @@ export class JobsService {
     private readonly dataSource: DataSource,
     private readonly companies: CompaniesService,
     private readonly couriers: CouriersService,
-    private readonly redis: RedisService
+    private readonly redis: RedisService,
+    private readonly directions: DirectionsService
   ) {}
 
   async create(dto: CreateJobDto, user: AuthenticatedUser) {
@@ -162,34 +164,65 @@ export class JobsService {
         base: 8000,
         perKm: 1500,
         perKg: 500,
+        perMinute: 120,
         expressMultiplier: 1.35,
-        sameDayMultiplier: 1.35,
+        sameDayMultiplier: 1.6,
+        commissionPercent: 20,
       });
       await this.priceConfig.save(cfg);
     }
     return cfg;
   }
 
-  /** Tarifa sugerida: base + km + peso, multiplicador express. */
-  async priceEstimate(distanceMeters: number, weightKg = 0, priority: 'standard' | 'express' = 'standard') {
+  /**
+   * Tarifa sugerida: base + distancia + tiempo (con tráfico real vía Mapbox cuando hay
+   * MAPBOX_TOKEN configurado) + peso, multiplicador por prioridad, + comisión de la plataforma.
+   */
+  async priceEstimate(query: PriceEstimateQueryDto) {
     const cfg = await this.ensurePriceConfig();
+    const route = await this.directions.route(
+      { lat: query.pickupLat, lng: query.pickupLng },
+      { lat: query.dropoffLat, lng: query.dropoffLng }
+    );
+
     const base = Number(cfg.base);
     const perKm = Number(cfg.perKm);
+    const perMinute = Number(cfg.perMinute);
     const perKg = Number(cfg.perKg);
-    const km = distanceMeters / 1000;
-    let price = base + perKm * km + perKg * weightKg;
-    const multiplier = priority === 'express' ? Number(cfg.expressMultiplier) : 1;
-    price *= multiplier;
+    const commissionPercent = Number(cfg.commissionPercent);
+    const weightKg = query.weightKg ?? 0;
+
+    const km = route.distanceMeters / 1000;
+    const minutes = route.durationSeconds / 60;
+
+    const distanceCost = perKm * km;
+    // El tráfico ya queda reflejado aquí: durationSeconds viene del perfil driving-traffic de Mapbox.
+    const timeCost = perMinute * minutes;
+    const weightCost = perKg * weightKg;
+
+    const priority = query.priority ?? 'standard';
+    const priorityMultiplier =
+      priority === 'express' ? Number(cfg.expressMultiplier) : priority === 'same_day' ? Number(cfg.sameDayMultiplier) : 1;
+
+    const subtotal = (base + distanceCost + timeCost + weightCost) * priorityMultiplier;
+    const commission = subtotal * (commissionPercent / 100);
+    const total = subtotal + commission;
+
     return {
       currency: 'COP',
-      distanceMeters,
+      distanceMeters: route.distanceMeters,
+      durationSeconds: route.durationSeconds,
+      trafficAware: route.trafficAware,
       breakdown: {
         base,
-        distance: Math.round(perKm * km),
-        weight: Math.round(perKg * weightKg),
-        priorityMultiplier: multiplier,
+        distance: Math.round(distanceCost),
+        time: Math.round(timeCost),
+        weight: Math.round(weightCost),
+        priorityMultiplier,
+        subtotal: Math.round(subtotal),
+        commission: Math.round(commission),
       },
-      price: Math.round(price / 100) * 100,
+      price: Math.round(total / 100) * 100,
     };
   }
 
