@@ -5,12 +5,11 @@ import { AuthStore } from '../core/auth/auth.store';
 import { RealtimeService } from '../core/realtime/realtime.service';
 
 const NAV: NavItem[] = [
-  { label: 'Panel', icon: 'dashboard', route: '/dashboard' },
+  { label: 'Panel', icon: 'home', route: '/dashboard' },
   { label: 'Envíos', icon: 'inventory_2', route: '/jobs' },
-  { label: 'Nuevo pedido', icon: 'add_circle', route: '/jobs/new' },
-  { label: 'Seguimiento', icon: 'explore', route: '/jobs' },
-  { label: 'Billetera', icon: 'account_balance_wallet', route: '/wallet' },
-  { label: 'Facturación', icon: 'receipt_long', route: '/billing' },
+  { label: 'Seguimiento', icon: 'place', route: '/tracking' },
+  { label: 'Billetera', icon: 'credit_card', route: '/wallet' },
+  { label: 'Facturación', icon: 'description', route: '/billing' },
   { label: 'Notificaciones', icon: 'notifications', route: '/notifications' },
   { label: 'Configuración', icon: 'settings', route: '/settings' },
 ];
@@ -20,9 +19,12 @@ const NAV: NavItem[] = [
   imports: [RouterModule, Shell],
   template: `
     <vexa-shell
-      title="Vexa Empresa"
+      title="Vexa"
+      badge="COMP"
       [navItems]="nav"
       [userName]="auth.user()?.fullName"
+      roleLabel="Cliente Premium"
+      notificationsRoute="/notifications"
       (logout)="auth.logout()"
     >
       <router-outlet />

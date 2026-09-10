@@ -16,7 +16,7 @@ import { MatIconModule } from '@angular/material/icon';
         }
       </div>
       @if (icon(); as i) {
-        <div class="stat__icon"><mat-icon>{{ i }}</mat-icon></div>
+        <div class="stat__icon" [class]="'stat__icon--' + tone()"><mat-icon>{{ i }}</mat-icon></div>
       }
     </div>
   `,
@@ -28,11 +28,13 @@ import { MatIconModule } from '@angular/material/icon';
     .stat__delta--neg { color: var(--vexa-error-700); }
     .stat__hint { font-weight: 400; color: var(--vexa-gray-500); }
     .stat__icon {
-      flex: none; width: 32px; height: 32px; border-radius: 8px;
+      flex: none; width: 36px; height: 36px; border-radius: 8px;
       display: grid; place-items: center;
-      background: var(--vexa-primary-100); color: var(--vexa-primary-700);
       mat-icon { font-size: 18px; width: 18px; height: 18px; }
     }
+    .stat__icon--primary { background: var(--vexa-primary-100); color: var(--vexa-primary-700); }
+    .stat__icon--success { background: var(--vexa-success-100); color: var(--vexa-success-700); }
+    .stat__icon--warning { background: var(--vexa-warning-100); color: var(--vexa-warning-700); }
   `,
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
@@ -42,4 +44,5 @@ export class StatCard {
   readonly delta = input<string>();
   readonly hint = input<string>();
   readonly icon = input<string>();
+  readonly tone = input<'primary' | 'success' | 'warning'>('primary');
 }

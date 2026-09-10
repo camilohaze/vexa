@@ -1,89 +1,145 @@
 import { DecimalPipe } from '@angular/common';
 import { ChangeDetectionStrategy, Component, computed, inject, input, OnInit, signal } from '@angular/core';
-import { MatCardModule } from '@angular/material/card';
 import { MatIconModule } from '@angular/material/icon';
+import { RouterLink } from '@angular/router';
 import { Map as VexaMap, MapMarker } from '@vexa/maps';
 import { Job, JobStatus, SocketEvents } from '@vexa/shared';
-import { PageHeader, StatusChip, Timeline, TimelineStep } from '@vexa/ui';
+import { StatusChip, Timeline, TimelineStep } from '@vexa/ui';
+import { ApiService } from '../../core/api/api.service';
 import { RealtimeService } from '../../core/realtime/realtime.service';
 import { JobsService } from './jobs.service';
 
+/** Figma: web-delivery-tracking */
 @Component({
   selector: 'vexa-job-tracking',
-  imports: [DecimalPipe, MatCardModule, MatIconModule, PageHeader, StatusChip, Timeline, VexaMap],
+  imports: [DecimalPipe, MatIconModule, RouterLink, StatusChip, Timeline, VexaMap],
   template: `
-    <vexa-page-header [title]="'Pedido #' + id().slice(0, 8)">
-      <vexa-status-chip actions [status]="job()?.status ?? JobStatus.PENDING" />
-    </vexa-page-header>
-
     <div class="tracking">
-      <mat-card class="tracking__map">
-        <mat-card-content>
-          <vexa-map [markers]="markers()" [center]="center()" />
-        </mat-card-content>
-      </mat-card>
-      <div class="tracking__side">
-        <mat-card>
-          <mat-card-header><mat-card-title>Línea de tiempo</mat-card-title></mat-card-header>
-          <mat-card-content>
-            <vexa-timeline [steps]="timeline()" />
-          </mat-card-content>
-        </mat-card>
+      <div class="telemetry">
+        <div class="vexa-card info-card">
+          <div class="info-card__top">
+            <span class="job-id">#{{ id().slice(0, 8).toUpperCase() }}</span>
+            <vexa-status-chip [status]="job()?.status ?? JobStatus.PENDING" />
+          </div>
+          <hr />
+          <div class="courier-brief">
+            <div class="courier-brief__avatar"><mat-icon>person</mat-icon></div>
+            <div class="courier-brief__info">
+              <span class="courier-brief__name">{{ courierName() ?? 'Repartidor por asignar' }}</span>
+              <span class="courier-brief__meta">Socio Vexa</span>
+            </div>
+          </div>
+          <hr />
+          <div class="eta-row">
+            <div>
+              <span class="vexa-overline">Entrega estimada</span>
+              <strong>{{ etaLabel() }}</strong>
+            </div>
+            <div class="eta-row__progress">
+              <span class="vexa-overline">Progreso</span>
+              <strong class="progress-pct">{{ progress() }}% completado</strong>
+            </div>
+          </div>
+          <div class="progress-track">
+            <div class="progress-track__fill" [style.width.%]="progress()"></div>
+          </div>
+        </div>
 
-        <mat-card>
-          <mat-card-header><mat-card-title>Detalle del paquete</mat-card-title></mat-card-header>
-          <mat-card-content>
-            @if (job(); as j) {
-              <p><mat-icon>trip_origin</mat-icon> {{ j.pickup.line1 }}, {{ j.pickup.city }}</p>
-              <p><mat-icon>location_on</mat-icon> {{ j.dropoff.line1 }}, {{ j.dropoff.city }}</p>
-              <p><mat-icon>payments</mat-icon> {{ j.price | number:'1.0-0':'es-CO' }} COP</p>
-              @if (j.distanceMeters) {
-                <p><mat-icon>route</mat-icon> {{ j.distanceMeters / 1000 | number:'1.1-1' }} km</p>
-              }
-              @if (j.notes) { <p><mat-icon>notes</mat-icon> {{ j.notes }}</p> }
-              @if (courierAt(); as loc) {
-                <p><mat-icon>pedal_bike</mat-icon> Repartidor a
-                  {{ loc.lat | number:'1.4-4' }}, {{ loc.lng | number:'1.4-4' }}</p>
-              }
-            } @else {
-              <p>Cargando…</p>
-            }
-          </mat-card-content>
-        </mat-card>
+        <div class="vexa-card timeline-card">
+          <h3 class="vexa-h5">Historial del envío</h3>
+          <vexa-timeline [steps]="timeline()" />
+        </div>
 
         @if (job()?.status === 'DELIVERED') {
-          <mat-card>
-            <mat-card-header><mat-card-title>Prueba de entrega</mat-card-title></mat-card-header>
-            <mat-card-content>
-              @if (job()?.proofOfDeliveryUrl; as pod) {
-                <img class="pod" [src]="pod" alt="Prueba de entrega" />
-              } @else {
-                <p class="muted">Sin evidencia cargada.</p>
-              }
-            </mat-card-content>
-          </mat-card>
-          <mat-card>
-            <mat-card-header><mat-card-title>Desglose de facturación</mat-card-title></mat-card-header>
-            <mat-card-content>
-              <div class="cost"><span>Tarifa base</span><span>{{ (job()?.price ?? 0) * 0.7 | number:'1.0-0':'es-CO' }} COP</span></div>
-              <div class="cost"><span>Recargo por distancia</span><span>{{ (job()?.price ?? 0) * 0.2 | number:'1.0-0':'es-CO' }} COP</span></div>
-              <div class="cost"><span>Ajuste</span><span>{{ (job()?.price ?? 0) * 0.1 | number:'1.0-0':'es-CO' }} COP</span></div>
-              <div class="cost cost--total"><span>Total</span><span>{{ job()?.price | number:'1.0-0':'es-CO' }} COP</span></div>
-            </mat-card-content>
-          </mat-card>
+          <div class="vexa-card">
+            <h3 class="vexa-h5">Prueba de entrega</h3>
+            @if (job()?.proofOfDeliveryUrl; as pod) {
+              <img class="pod" [src]="pod" alt="Prueba de entrega" />
+            } @else {
+              <p class="muted">Sin evidencia cargada.</p>
+            }
+          </div>
+          <div class="vexa-card">
+            <h3 class="vexa-h5">Desglose de facturación</h3>
+            <div class="cost"><span>Tarifa base</span><span>{{ (job()?.price ?? 0) * 0.7 | number: '1.0-0':'es-CO' }} COP</span></div>
+            <div class="cost"><span>Recargo por distancia</span><span>{{ (job()?.price ?? 0) * 0.2 | number: '1.0-0':'es-CO' }} COP</span></div>
+            <div class="cost"><span>Ajuste</span><span>{{ (job()?.price ?? 0) * 0.1 | number: '1.0-0':'es-CO' }} COP</span></div>
+            <div class="cost cost--total"><span>Total</span><span>{{ job()?.price | number: '1.0-0':'es-CO' }} COP</span></div>
+            <a class="rate-btn" [routerLink]="['/jobs', id(), 'rate']">Calificar repartidor</a>
+          </div>
+        }
+      </div>
+
+      <div class="vexa-card map-panel">
+        <vexa-map [markers]="markers()" [center]="center()" />
+        @if (job(); as j) {
+          <div class="map-address-panel">
+            <div class="route-node">
+              <span class="route-node__dot route-node__dot--pickup"></span>
+              <span>{{ j.pickup.line1 }}, {{ j.pickup.city }}</span>
+            </div>
+            <hr />
+            <div class="route-node">
+              <span class="route-node__dot route-node__dot--dest"></span>
+              <span>{{ j.dropoff.line1 }}, {{ j.dropoff.city }}</span>
+            </div>
+          </div>
         }
       </div>
     </div>
   `,
   styles: `
-    .tracking { display: grid; grid-template-columns: 2fr 1fr; gap: 16px; align-items: start; }
-    .tracking__side { display: flex; flex-direction: column; gap: 16px; }
-    @media (max-width: 960px) { .tracking { grid-template-columns: 1fr; } }
-    p { display: flex; align-items: center; gap: 8px; }
-    .muted { color: var(--vexa-gray-500); }
+    .tracking { display: flex; gap: 24px; align-items: flex-start; }
+    .telemetry { display: flex; flex-direction: column; gap: 24px; width: 440px; flex: none; }
+    @media (max-width: 1100px) { .tracking { flex-direction: column; } .telemetry { width: 100%; } }
+
+    .info-card { display: flex; flex-direction: column; gap: 16px; }
+    .info-card__top { display: flex; align-items: center; justify-content: space-between; }
+    .job-id { font-size: 20px; font-weight: 700; color: var(--vexa-gray-900); }
+    hr { border: none; border-top: 1px solid var(--vexa-gray-200); margin: 0; width: 100%; }
+
+    .courier-brief { display: flex; align-items: center; gap: 12px; }
+    .courier-brief__avatar {
+      width: 48px; height: 48px; border-radius: 50%; flex: none;
+      background: var(--vexa-primary-100); color: var(--vexa-primary-700);
+      display: grid; place-items: center;
+    }
+    .courier-brief__info { display: flex; flex-direction: column; gap: 2px; }
+    .courier-brief__name { font-size: 16px; font-weight: 600; color: var(--vexa-gray-900); }
+    .courier-brief__meta { font-size: 12px; color: var(--vexa-gray-400); }
+
+    .eta-row { display: flex; justify-content: space-between; align-items: flex-start; }
+    .eta-row div { display: flex; flex-direction: column; gap: 4px; }
+    .eta-row__progress { align-items: flex-end; text-align: right; }
+    .eta-row strong { font-size: 18px; color: var(--vexa-gray-900); }
+    .progress-pct { color: var(--vexa-primary-600) !important; }
+    .progress-track { height: 8px; border-radius: 4px; background: var(--vexa-gray-200); overflow: hidden; }
+    .progress-track__fill { height: 100%; background: var(--vexa-primary-600); border-radius: 4px; }
+
+    .timeline-card { display: flex; flex-direction: column; gap: 20px; }
+
+    .muted { color: var(--vexa-gray-500); margin: 0; }
     .pod { width: 100%; border-radius: 12px; }
     .cost { display: flex; justify-content: space-between; font-size: 13px; padding: 4px 0; }
     .cost--total { font-weight: 700; border-top: 1px solid var(--vexa-gray-200); margin-top: 8px; padding-top: 10px; }
+    .rate-btn {
+      display: block; text-align: center; margin-top: 16px; padding: 10px 16px;
+      background: var(--vexa-primary-600); color: #fff; border-radius: var(--vexa-radius-sm);
+      font-size: 14px; font-weight: 600; text-decoration: none;
+    }
+
+    .map-panel { flex: 1 1 auto; min-width: 0; height: 600px; position: relative; padding: 0; overflow: hidden; }
+    .map-panel vexa-map { display: block; height: 100%; }
+    .map-address-panel {
+      position: absolute; left: 24px; bottom: 24px; width: 320px;
+      background: #fff; border: 1px solid var(--vexa-gray-200); border-radius: var(--vexa-radius-md);
+      padding: 16px; display: flex; flex-direction: column; gap: 12px;
+      box-shadow: var(--vexa-shadow-card);
+    }
+    .route-node { display: flex; align-items: center; gap: 8px; font-size: 13px; color: var(--vexa-gray-600); }
+    .route-node__dot { width: 8px; height: 8px; border-radius: 50%; flex: none; }
+    .route-node__dot--pickup { background: var(--vexa-success-500); }
+    .route-node__dot--dest { background: var(--vexa-primary-600); }
   `,
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
@@ -93,9 +149,11 @@ export class JobTracking implements OnInit {
 
   protected readonly job = signal<Job | null>(null);
   protected readonly courierAt = signal<{ lat: number; lng: number } | null>(null);
+  protected readonly courierName = signal<string | null>(null);
 
   private readonly jobs = inject(JobsService);
   private readonly realtime = inject(RealtimeService);
+  private readonly api = inject(ApiService);
 
   protected readonly center = computed(() => this.courierAt() ?? this.job()?.pickup ?? { lat: 4.711, lng: -74.0721 });
   protected readonly markers = computed<MapMarker[]>(() => {
@@ -110,15 +168,27 @@ export class JobTracking implements OnInit {
     return markers;
   });
 
+  private static readonly PROGRESS: Record<string, number> = {
+    [JobStatus.PENDING]: 5,
+    [JobStatus.OFFERED]: 15,
+    [JobStatus.ACCEPTED]: 35,
+    [JobStatus.PICKED_UP]: 60,
+    [JobStatus.IN_TRANSIT]: 80,
+    [JobStatus.DELIVERED]: 100,
+    [JobStatus.CANCELLED]: 100,
+  };
+  protected readonly progress = computed(() => JobTracking.PROGRESS[this.job()?.status ?? ''] ?? 0);
+  protected readonly etaLabel = computed(() => {
+    const j = this.job();
+    if (!j) return '—';
+    if (j.status === JobStatus.DELIVERED && j.completedAt) return new Date(j.completedAt).toLocaleString('es-CO');
+    return 'En camino';
+  });
+
   protected readonly timeline = computed<TimelineStep[]>(() => {
     const j = this.job();
     if (!j) return [];
-    const order = [
-      JobStatus.ACCEPTED,
-      JobStatus.PICKED_UP,
-      JobStatus.IN_TRANSIT,
-      JobStatus.DELIVERED,
-    ];
+    const order = [JobStatus.ACCEPTED, JobStatus.PICKED_UP, JobStatus.IN_TRANSIT, JobStatus.DELIVERED];
     const idx = order.indexOf(j.status);
     const labels = ['Aceptado', 'Recogido', 'En tránsito', 'Entregado'];
     const times = [j.acceptedAt, null, null, j.completedAt];
@@ -134,19 +204,27 @@ export class JobTracking implements OnInit {
   });
 
   ngOnInit() {
-    this.jobs.getById(this.id()).subscribe((job) => this.job.set(job));
+    this.jobs.getById(this.id()).subscribe((job) => {
+      this.job.set(job);
+      if (job.courierId) this.loadCourierName(job.courierId);
+    });
     this.realtime.subscribeToJob(this.id());
-    this.realtime
-      .on(SocketEvents.COURIER_LOCATION)
-      .subscribe((loc) => {
-        if (loc.jobId === this.id()) this.courierAt.set({ lat: loc.lat, lng: loc.lng });
-      });
+    this.realtime.on(SocketEvents.COURIER_LOCATION).subscribe((loc) => {
+      if (loc.jobId === this.id()) this.courierAt.set({ lat: loc.lat, lng: loc.lng });
+    });
     this.realtime.on(SocketEvents.JOB_ACCEPTED).subscribe(() => this.refresh());
     this.realtime.on(SocketEvents.JOB_COMPLETED).subscribe(() => this.refresh());
     this.realtime.on(SocketEvents.JOB_CANCELLED).subscribe(() => this.refresh());
   }
 
+  private loadCourierName(courierId: string) {
+    this.api.get<{ name: string }>(`couriers/${courierId}/profile`).subscribe((c) => this.courierName.set(c.name));
+  }
+
   private refresh() {
-    this.jobs.getById(this.id()).subscribe((job) => this.job.set(job));
+    this.jobs.getById(this.id()).subscribe((job) => {
+      this.job.set(job);
+      if (job.courierId) this.loadCourierName(job.courierId);
+    });
   }
 }

@@ -1,7 +1,6 @@
 import { DatePipe } from '@angular/common';
-import { ChangeDetectionStrategy, Component, inject, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
 import { MatIconModule } from '@angular/material/icon';
-import { PageHeader } from '@vexa/ui';
 import { ApiService } from '../../core/api/api.service';
 
 interface NotificationItem {
@@ -13,57 +12,112 @@ interface NotificationItem {
   unread: boolean;
 }
 
-/** Figma: notifications-screen — feed agrupado por día. */
+type Category = 'deliveries' | 'payments' | 'system';
+type Tab = 'all' | Category;
+
+const DELIVERY_ICONS = ['local_shipping', 'inventory_2', 'package', 'place'];
+const PAYMENT_ICONS = ['credit_card', 'account_balance_wallet', 'payments', 'receipt_long'];
+
+function categoryOf(icon: string): Category {
+  if (DELIVERY_ICONS.includes(icon)) return 'deliveries';
+  if (PAYMENT_ICONS.includes(icon)) return 'payments';
+  return 'system';
+}
+
+/** Figma: web-notifications */
 @Component({
   selector: 'vexa-notifications',
-  imports: [DatePipe, MatIconModule, PageHeader],
+  imports: [DatePipe, MatIconModule],
   template: `
-    <vexa-page-header title="Notificaciones" />
-    @for (group of groups(); track group.label) {
-      <h3 class="vexa-overline group">{{ group.label }}</h3>
-      <div class="vexa-card list">
-        @for (n of group.items; track n.id) {
-          <div class="item">
-            <span class="item__dot" [class.item__dot--unread]="n.unread"></span>
-            <mat-icon>{{ n.icon }}</mat-icon>
-            <div class="item__body">
-              <strong>{{ n.title }}</strong>
-              <small>{{ n.body }}</small>
-            </div>
-            <small class="item__when">{{ n.when | date:'short' }}</small>
-          </div>
-        } @empty {
-          <p style="padding:16px;color:var(--vexa-gray-500)">Sin notificaciones.</p>
+    <div class="filter-header">
+      <div class="tabs">
+        @for (t of tabs; track t.value) {
+          <button
+            type="button"
+            class="tabs__item"
+            [class.tabs__item--active]="tab() === t.value"
+            (click)="tab.set(t.value)"
+          >
+            {{ t.label }}
+          </button>
         }
       </div>
-    }
+      <button type="button" class="mark-read-btn" (click)="markAllRead()">Marcar todo como leído</button>
+    </div>
+
+    <div class="vexa-card list">
+      @for (n of filtered(); track n.id) {
+        <div class="item" [class.item--unread]="n.unread">
+          <div class="item__icon" [class]="'item__icon--' + categoryOf(n.icon)">
+            <mat-icon>{{ n.icon }}</mat-icon>
+          </div>
+          <div class="item__body">
+            <div class="item__title-row">
+              <strong>{{ n.title }}</strong>
+              @if (n.unread) {
+                <span class="dot"></span>
+              }
+            </div>
+            <p class="item__text">{{ n.body }}</p>
+          </div>
+          <span class="item__when">{{ n.when | date: 'short':'':'es-CO' }}</span>
+        </div>
+      } @empty {
+        <p class="empty">Sin notificaciones.</p>
+      }
+    </div>
   `,
   styles: `
-    .group { margin: 20px 0 8px; }
-    .list { padding: 4px 0; max-width: 720px; }
-    .item { display: flex; align-items: flex-start; gap: 12px; padding: 14px 16px; }
-    .item + .item { border-top: 1px solid var(--vexa-gray-100); }
-    .item mat-icon { color: var(--vexa-primary-600); margin-top: 2px; }
-    .item__dot { width: 8px; height: 8px; border-radius: 50%; background: transparent; margin-top: 8px; }
-    .item__dot--unread { background: var(--vexa-primary-600); }
-    .item__body { flex: 1; display: flex; flex-direction: column; gap: 2px; }
-    .item__body small, .item__when { color: var(--vexa-gray-500); }
+    .filter-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 24px; }
+    .tabs { display: flex; gap: 4px; padding: 4px; background: #fff; border: 1px solid var(--vexa-gray-200); border-radius: var(--vexa-radius-md); }
+    .tabs__item { border: 0; background: transparent; padding: 8px 16px; border-radius: var(--vexa-radius-sm); font-size: 14px; font-weight: 600; color: var(--vexa-gray-600); cursor: pointer; }
+    .tabs__item--active { background: var(--vexa-primary-600); color: #fff; }
+    .mark-read-btn { background: #fff; border: 1px solid var(--vexa-gray-200); border-radius: var(--vexa-radius-sm); padding: 10px 16px; font-size: 14px; font-weight: 600; color: var(--vexa-gray-600); cursor: pointer; }
+
+    .list { padding: 0; overflow: hidden; }
+    .item { display: flex; gap: 16px; padding: 20px; border-bottom: 1px solid var(--vexa-gray-200); }
+    .item:last-child { border-bottom: none; }
+    .item--unread { background: var(--vexa-gray-50); }
+    .item__icon {
+      flex: none; width: 40px; height: 40px; border-radius: var(--vexa-radius-sm);
+      display: grid; place-items: center; color: var(--vexa-gray-600);
+    }
+    .item__icon--deliveries { background: var(--vexa-primary-100); color: var(--vexa-primary-700); }
+    .item__icon--payments { background: var(--vexa-success-100); color: var(--vexa-success-700); }
+    .item__icon--system { background: var(--vexa-warning-100); color: var(--vexa-warning-700); }
+    .item__body { flex: 1 1 auto; min-width: 0; display: flex; flex-direction: column; gap: 4px; }
+    .item__title-row { display: flex; align-items: center; gap: 8px; }
+    .item__title-row strong { font-size: 15px; color: var(--vexa-gray-900); }
+    .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--vexa-primary-600); flex: none; }
+    .item__text { margin: 0; font-size: 14px; color: var(--vexa-gray-600); }
+    .item__when { flex: none; font-size: 13px; color: var(--vexa-gray-400); }
+    .empty { padding: 24px; color: var(--vexa-gray-500); }
   `,
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class Notifications {
   private readonly api = inject(ApiService);
-  protected readonly groups = signal<{ label: string; items: NotificationItem[] }[]>([]);
+  protected readonly categoryOf = categoryOf;
+
+  protected readonly tabs: { value: Tab; label: string }[] = [
+    { value: 'all', label: 'Todas' },
+    { value: 'deliveries', label: 'Envíos' },
+    { value: 'payments', label: 'Pagos' },
+    { value: 'system', label: 'Sistema' },
+  ];
+
+  protected readonly tab = signal<Tab>('all');
+  protected readonly items = signal<NotificationItem[]>([]);
+  protected readonly filtered = computed(() => {
+    const tab = this.tab();
+    return tab === 'all' ? this.items() : this.items().filter((n) => categoryOf(n.icon) === tab);
+  });
 
   constructor() {
-    this.api.get<NotificationItem[]>('companies/me/notifications').subscribe((items) => {
-      const today = new Date().toDateString();
-      const todayItems = items.filter((n) => new Date(n.when).toDateString() === today);
-      const older = items.filter((n) => new Date(n.when).toDateString() !== today);
-      const groups: { label: string; items: NotificationItem[] }[] = [];
-      if (todayItems.length) groups.push({ label: 'HOY', items: todayItems });
-      if (older.length) groups.push({ label: 'ANTERIORES', items: older });
-      this.groups.set(groups);
-    });
+    this.api.get<NotificationItem[]>('companies/me/notifications').subscribe((items) => this.items.set(items));
+  }
+
+  markAllRead() {
+    this.items.update((list) => list.map((n) => ({ ...n, unread: false })));
   }
 }
