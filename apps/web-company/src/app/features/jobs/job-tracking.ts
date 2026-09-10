@@ -132,7 +132,7 @@ import { JobsService } from './jobs.service';
               <div class="cost"><span>Comisión plataforma</span><span>{{ b.commission | number: '1.0-0' }} COP</span></div>
             }
             <div class="cost cost--total"><span>Total</span><span>{{ job()?.price | number: '1.0-0' }} COP</span></div>
-            <a class="rate-btn" [routerLink]="['../jobs', id(), 'rate']">Calificar repartidor</a>
+            <a class="rate-btn" [routerLink]="['rate']">Calificar repartidor</a>
           </div>
         }
       </div>

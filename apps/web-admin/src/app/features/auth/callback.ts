@@ -37,6 +37,6 @@ export class AuthCallback implements OnInit {
     } catch {
       // el interceptor reintentará en la próxima petición
     }
-    await this.router.navigate(['..', 'dashboard'], { relativeTo: this.route });
+    await this.router.navigate(['..', '..', 'dashboard'], { relativeTo: this.route });
   }
 }

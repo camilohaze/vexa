@@ -205,7 +205,7 @@ const PRIORITIES = [
           @if (step() > 0) {
             <button mat-stroked-button type="button" (click)="step.set(step() - 1)">Atrás</button>
           } @else {
-            <span></span>
+            <button mat-stroked-button type="button" (click)="cancel()">Cancelar pedido</button>
           }
           @if (step() < 4) {
             <button mat-flat-button type="button" (click)="next()">Siguiente</button>
@@ -454,6 +454,10 @@ export class JobCreate {
     this.step.update((s) => Math.min(4, s + 1));
   }
 
+  cancel() {
+    this.router.navigate(['..'], { relativeTo: this.route });
+  }
+
   saveDraft() {
     this.snack.open('Borrador guardado', undefined, { duration: 2500 });
   }
@@ -481,7 +485,7 @@ export class JobCreate {
       .subscribe({
         next: (job) => {
           this.snack.open('Pedido publicado', undefined, { duration: 3000 });
-          this.router.navigate(['..', 'jobs', job.id], { relativeTo: this.route });
+          this.router.navigate(['..', job.id], { relativeTo: this.route });
         },
         error: () => {
           this.saving.set(false);

@@ -70,7 +70,7 @@ export class RateCourier {
     this.jobs.rate(this.id(), score || 5, this.comment || undefined).subscribe({
       next: () => {
         this.snack.open('¡Gracias por tu calificación!', undefined, { duration: 2500 });
-        this.router.navigate(['..', 'jobs'], { relativeTo: this.route });
+        this.router.navigate(['..', '..'], { relativeTo: this.route });
       },
       error: () =>
         this.snack.open('No se pudo enviar la calificación', undefined, { duration: 3000 }),
