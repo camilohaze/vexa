@@ -1,6 +1,7 @@
 import { CurrencyPipe } from '@angular/common';
 import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
+import { MatAutocompleteModule } from '@angular/material/autocomplete';
 import { MatButtonModule } from '@angular/material/button';
 import { MatCheckboxModule } from '@angular/material/checkbox';
 import { MatIconModule } from '@angular/material/icon';
@@ -8,7 +9,7 @@ import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { ActivatedRoute, Router } from '@angular/router';
-import { debounceTime } from 'rxjs';
+import { debounceTime, distinctUntilChanged, filter, switchMap } from 'rxjs';
 import { GeocodingResult, GeocodingService } from '@vexa/maps';
 import { JobPriceBreakdown } from '@vexa/shared';
 import { environment } from '../../../environments/environment';
@@ -32,6 +33,7 @@ const PRIORITIES = [
   selector: 'vexa-job-create',
   imports: [
     CurrencyPipe,
+    MatAutocompleteModule,
     MatButtonModule,
     MatCheckboxModule,
     MatFormFieldModule,
@@ -104,18 +106,24 @@ const PRIORITIES = [
           @case (1) {
             <h2 class="vexa-h4">Punto de recogida</h2>
             <div formGroupName="pickup" class="grid">
-              <mat-form-field appearance="outline" class="span2"><mat-label>Dirección</mat-label>
-                <input matInput formControlName="line1" /></mat-form-field>
-              <button mat-stroked-button type="button" class="span2 geo-btn"
-                  (click)="geocode('pickup')">
-                <mat-icon>travel_explore</mat-icon> Buscar en mapa</button>
-              @if (suggestions()['pickup']?.length) {
-                <div class="span2 sugg">
+              <mat-form-field appearance="outline" class="span2">
+                <mat-label>Dirección</mat-label>
+                <input
+                  matInput
+                  formControlName="line1"
+                  [matAutocomplete]="pickupAuto"
+                  placeholder="Escribe para buscar una dirección…"
+                />
+                <button mat-icon-button matSuffix type="button" aria-label="Buscar en mapa"
+                    (click)="geocode('pickup')">
+                  <mat-icon>travel_explore</mat-icon>
+                </button>
+                <mat-autocomplete #pickupAuto="matAutocomplete" (optionSelected)="applyGeocodeByLine1('pickup', $event.option.value)">
                   @for (s of suggestions()['pickup']; track s.line1) {
-                    <button type="button" (click)="applyGeocode('pickup', s)">{{ s.line1 }}</button>
+                    <mat-option [value]="s.line1">{{ s.line1 }}</mat-option>
                   }
-                </div>
-              }
+                </mat-autocomplete>
+              </mat-form-field>
               <mat-form-field appearance="outline"><mat-label>Ciudad</mat-label><input matInput formControlName="city" /></mat-form-field>
               <mat-form-field appearance="outline"><mat-label>Estado/Depto</mat-label><input matInput formControlName="line2" /></mat-form-field>
               <mat-form-field appearance="outline"><mat-label>Latitud</mat-label><input matInput type="number" step="any" formControlName="lat" /></mat-form-field>
@@ -136,18 +144,24 @@ const PRIORITIES = [
           @case (2) {
             <h2 class="vexa-h4">Destino de entrega</h2>
             <div formGroupName="dropoff" class="grid">
-              <mat-form-field appearance="outline" class="span2"><mat-label>Dirección</mat-label>
-                <input matInput formControlName="line1" /></mat-form-field>
-              <button mat-stroked-button type="button" class="span2 geo-btn"
-                  (click)="geocode('dropoff')">
-                <mat-icon>travel_explore</mat-icon> Buscar en mapa</button>
-              @if (suggestions()['dropoff']?.length) {
-                <div class="span2 sugg">
+              <mat-form-field appearance="outline" class="span2">
+                <mat-label>Dirección</mat-label>
+                <input
+                  matInput
+                  formControlName="line1"
+                  [matAutocomplete]="dropoffAuto"
+                  placeholder="Escribe para buscar una dirección…"
+                />
+                <button mat-icon-button matSuffix type="button" aria-label="Buscar en mapa"
+                    (click)="geocode('dropoff')">
+                  <mat-icon>travel_explore</mat-icon>
+                </button>
+                <mat-autocomplete #dropoffAuto="matAutocomplete" (optionSelected)="applyGeocodeByLine1('dropoff', $event.option.value)">
                   @for (s of suggestions()['dropoff']; track s.line1) {
-                    <button type="button" (click)="applyGeocode('dropoff', s)">{{ s.line1 }}</button>
+                    <mat-option [value]="s.line1">{{ s.line1 }}</mat-option>
                   }
-                </div>
-              }
+                </mat-autocomplete>
+              </mat-form-field>
               <mat-form-field appearance="outline"><mat-label>Ciudad</mat-label><input matInput formControlName="city" /></mat-form-field>
               <mat-form-field appearance="outline"><mat-label>Estado/Depto</mat-label><input matInput formControlName="line2" /></mat-form-field>
               <mat-form-field appearance="outline"><mat-label>Latitud</mat-label><input matInput type="number" step="any" formControlName="lat" /></mat-form-field>
@@ -284,10 +298,6 @@ const PRIORITIES = [
     .dims, .grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 0 12px; }
     .dims { grid-template-columns: repeat(4, 1fr); }
     .span2 { grid-column: span 2; }
-    .geo-btn { justify-self: start; }
-    .sugg { display: flex; flex-direction: column; border: 1px solid var(--vexa-gray-200); border-radius: 10px; overflow: hidden; }
-    .sugg button { text-align: left; padding: 8px 12px; background: #fff; border: 0; border-top: 1px solid var(--vexa-gray-100); cursor: pointer; font: inherit; font-size: 13px; }
-    .sugg button:hover { background: var(--vexa-primary-50); }
     .priority-row { display: flex; gap: 8px; margin-bottom: 16px; }
     .priority {
       flex: 1; padding: 10px; background: #fff; border: 1px solid var(--vexa-gray-200);
@@ -405,22 +415,39 @@ export class JobCreate {
   constructor() {
     this.loadEstimate();
     this.form.valueChanges.pipe(debounceTime(400)).subscribe(() => this.loadEstimate());
+
+    (['pickup', 'dropoff'] as const).forEach((field) => {
+      this.form.controls[field].controls.line1.valueChanges
+        .pipe(
+          debounceTime(300),
+          distinctUntilChanged(),
+          filter((query) => query.trim().length >= 3),
+          switchMap((query) => this.geocoding.search(query, environment.mapboxToken))
+        )
+        .subscribe((results) => this.suggestions.update((s) => ({ ...s, [field]: results })));
+    });
   }
 
   protected canPublish() {
     return this.form.valid && this.form.controls.acceptTerms.value;
   }
 
+  /** Disparo manual (botón "Buscar en mapa"): reusa el mismo filtro reactivo con el texto actual. */
   geocode(field: 'pickup' | 'dropoff') {
-    const group = this.form.controls[field];
-    const query = group.controls.line1.value;
+    const query = this.form.controls[field].controls.line1.value;
     if (!query || !environment.mapboxToken) return;
     this.geocoding.search(query, environment.mapboxToken).subscribe((results) =>
       this.suggestions.update((s) => ({ ...s, [field]: results })),
     );
   }
 
-  applyGeocode(field: 'pickup' | 'dropoff', result: GeocodingResult) {
+  /** El autocomplete solo puede transportar el string mostrado; recupera el resultado completo por línea 1. */
+  protected applyGeocodeByLine1(field: 'pickup' | 'dropoff', line1: string) {
+    const result = this.suggestions()[field].find((s) => s.line1 === line1);
+    if (result) this.applyGeocode(field, result);
+  }
+
+  private applyGeocode(field: 'pickup' | 'dropoff', result: GeocodingResult) {
     this.form.controls[field].patchValue({
       line1: result.line1,
       city: result.city || this.form.controls[field].controls.city.value,
