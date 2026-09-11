@@ -8,6 +8,18 @@
       "port": 3000
     },
     {
+      "name": "realtime-service",
+      "runtimeExecutable": "npx",
+      "runtimeArgs": ["nx", "serve", "realtime-service"],
+      "port": 3001
+    },
+    {
+      "name": "matching-service",
+      "runtimeExecutable": "npx",
+      "runtimeArgs": ["nx", "serve", "matching-service"],
+      "port": 3002
+    },
+    {
       "name": "web-company",
       "runtimeExecutable": "npx",
       "runtimeArgs": ["nx", "serve-static", "web-company"],
