@@ -126,8 +126,6 @@ const PRIORITIES = [
               </mat-form-field>
               <mat-form-field appearance="outline"><mat-label>Ciudad</mat-label><input matInput formControlName="city" /></mat-form-field>
               <mat-form-field appearance="outline"><mat-label>Estado/Depto</mat-label><input matInput formControlName="line2" /></mat-form-field>
-              <mat-form-field appearance="outline"><mat-label>Latitud</mat-label><input matInput type="number" step="any" formControlName="lat" /></mat-form-field>
-              <mat-form-field appearance="outline"><mat-label>Longitud</mat-label><input matInput type="number" step="any" formControlName="lng" /></mat-form-field>
             </div>
             <h3 class="vexa-overline">Persona de contacto</h3>
             <div class="grid">
@@ -164,8 +162,6 @@ const PRIORITIES = [
               </mat-form-field>
               <mat-form-field appearance="outline"><mat-label>Ciudad</mat-label><input matInput formControlName="city" /></mat-form-field>
               <mat-form-field appearance="outline"><mat-label>Estado/Depto</mat-label><input matInput formControlName="line2" /></mat-form-field>
-              <mat-form-field appearance="outline"><mat-label>Latitud</mat-label><input matInput type="number" step="any" formControlName="lat" /></mat-form-field>
-              <mat-form-field appearance="outline"><mat-label>Longitud</mat-label><input matInput type="number" step="any" formControlName="lng" /></mat-form-field>
             </div>
             <h3 class="vexa-overline">Destinatario</h3>
             <div class="grid">
