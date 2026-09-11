@@ -1,6 +1,7 @@
 {
   "extends": "./tsconfig.app.json",
   "files": [
+    "../../libs/web-core/src/index.ts",
     "../../libs/shared/src/index.ts"
   ],
   "include": [

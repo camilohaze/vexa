@@ -2,16 +2,16 @@ import { ApplicationConfig, provideBrowserGlobalErrorListeners, provideZonelessC
 import { provideHttpClient, withInterceptors } from '@angular/common/http';
 import { provideRouter, withComponentInputBinding } from '@angular/router';
 import { provideMapbox } from '@vexa/maps';
+import { provideAuthInterceptor } from '@vexa/web-core';
 import { environment } from '../environments/environment';
 import { appRoutes } from './app.routes';
-import { authInterceptor } from './core/auth/auth.interceptor';
 
 export const appConfig: ApplicationConfig = {
   providers: [
     provideBrowserGlobalErrorListeners(),
     provideZonelessChangeDetection(),
     provideRouter(appRoutes, withComponentInputBinding()),
-    provideHttpClient(withInterceptors([authInterceptor])),
+    provideHttpClient(withInterceptors([provideAuthInterceptor(environment.apiUrl)])),
     provideMapbox(environment.mapboxToken),
   ],
 };

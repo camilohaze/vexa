@@ -28,20 +28,6 @@ export class AuthStore {
     this.setUser(user);
   }
 
-  /** Renueva el par de tokens con el refresh token vigente. Devuelve el nuevo access token, o null si no se pudo renovar. */
-  async refreshTokens(): Promise<string | null> {
-    const refreshToken = this.tokens()?.refreshToken;
-    if (!refreshToken) return null;
-    try {
-      const tokens = await firstValueFrom(this.api.post<AuthTokens>('auth/refresh', { refreshToken }));
-      this.tokens.set(tokens);
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(tokens));
-      return tokens.accessToken;
-    } catch {
-      return null;
-    }
-  }
-
   loginWithProvider(provider: AuthProvider) {
     const url = `${environment.apiUrl}/auth/${provider.toLowerCase()}?client=${environment.authClient}`;
     window.location.href = url;

@@ -38,6 +38,9 @@
       ],
       "@vexa/core": [
         "./libs/core/src/index.ts"
+      ],
+      "@vexa/web-core": [
+        "./libs/web-core/src/index.ts"
       ]
     }
   },
