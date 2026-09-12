@@ -64,12 +64,12 @@ class _NotificationRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final minutes = DateTime.now().difference(n.when).inMinutes;
-    final ago = minutes < 60
-        ? '${minutes}m'
-        : minutes < 1440
-            ? '${(minutes / 60).floor()}h'
-            : '${(minutes / 1440).floor()}d';
+    final diff = DateTime.now().difference(n.when);
+    final ago = diff.inMinutes < 60
+        ? 'hace ${diff.inMinutes.clamp(1, 59)} min'
+        : diff.inHours < 24
+            ? 'hace ${diff.inHours} h'
+            : 'hace ${diff.inDays} d';
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
@@ -97,7 +97,7 @@ class _NotificationRow extends StatelessWidget {
                 const SizedBox(height: 2),
                 Text(n.body, style: const TextStyle(fontSize: 13, color: VexaColors.gray600)),
                 const SizedBox(height: 4),
-                Text('$ago ago', style: const TextStyle(fontSize: 11, color: VexaColors.gray400)),
+                Text(ago, style: const TextStyle(fontSize: 11, color: VexaColors.gray400)),
               ],
             ),
           ),

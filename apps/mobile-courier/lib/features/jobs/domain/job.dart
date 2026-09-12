@@ -172,6 +172,16 @@ class Job {
   double? get distanceKm =>
       distanceMeters == null ? null : distanceMeters! / 1000;
 
+  static const _packageTypeLabels = {
+    'document': 'Documento',
+    'small': 'Paquete pequeño',
+    'large': 'Paquete grande',
+    'pallet': 'Pallet',
+  };
+
+  String? get packageTypeLabel =>
+      packageType == null ? null : (_packageTypeLabels[packageType] ?? packageType);
+
   int? get durationMinutes =>
       durationSeconds == null ? null : (durationSeconds! / 60).ceil();
 

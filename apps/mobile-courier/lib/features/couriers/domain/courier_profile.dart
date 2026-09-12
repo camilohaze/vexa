@@ -14,12 +14,21 @@ class CourierProfile {
         name: json['name'] as String? ?? 'Repartidor',
         avatarUrl: json['avatarUrl'] as String?,
         vehicle: json['vehicle'] as String? ?? '',
-        vehicleDetails: json['vehicleDetails'] as String?,
+        vehicleDetails: _formatVehicleDetails(json['vehicleDetails']),
         rating: (json['rating'] as num?)?.toDouble() ?? 0,
         totalJobs: (json['totalJobs'] as num?)?.toInt() ?? 0,
         onTimeRate: (json['onTimeRate'] as num?)?.toDouble() ?? 0,
         acceptanceRate: (json['acceptanceRate'] as num?)?.toDouble() ?? 0,
       );
+
+  static String? _formatVehicleDetails(Object? raw) {
+    if (raw is! Map) return null;
+    final make = raw['make'] as String?;
+    final plate = raw['plate'] as String?;
+    if (make == null && plate == null) return null;
+    if (make != null && plate != null) return '$make ($plate)';
+    return make ?? plate;
+  }
 
   final String name;
   final String? avatarUrl;

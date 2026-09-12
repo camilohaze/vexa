@@ -53,7 +53,7 @@ class CompanyJobDetailPage extends ConsumerWidget {
                 title: 'Especificación del paquete',
                 child: Row(
                   children: [
-                    _SpecColumn('Categoría', job.packageType ?? '—'),
+                    _SpecColumn('Categoría', job.packageTypeLabel ?? '—'),
                     _SpecColumn('Peso', job.weightKg != null ? '${job.weightKg} kg' : '—'),
                     _SpecColumn('Dimensiones', job.dimensions != null
                         ? '${job.dimensions!.l.toStringAsFixed(0)}x${job.dimensions!.w.toStringAsFixed(0)}x${job.dimensions!.h.toStringAsFixed(0)} cm'

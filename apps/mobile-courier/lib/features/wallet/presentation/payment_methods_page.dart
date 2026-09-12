@@ -135,7 +135,7 @@ class _MethodRow extends StatelessWidget {
             margin: const EdgeInsets.only(right: 8),
             padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
             decoration: BoxDecoration(color: VexaColors.success100, borderRadius: BorderRadius.circular(6)),
-            child: const Text('DEFAULT',
+            child: const Text('PREDETERMINADA',
                 style: TextStyle(fontSize: 10, fontWeight: FontWeight.w800, color: VexaColors.success700)),
           ),
         TextButton(

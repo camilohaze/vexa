@@ -96,7 +96,7 @@ class _HistoryCard extends StatelessWidget {
                 ],
               ),
               const SizedBox(height: 8),
-              Text(job.packageType ?? 'Envío', style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w700)),
+              Text(job.packageTypeLabel ?? 'Envío', style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w700)),
               Text('${job.pickup.short} → ${job.dropoff.short}',
                   style: const TextStyle(fontSize: 13, color: VexaColors.gray600),
                   maxLines: 1, overflow: TextOverflow.ellipsis),
