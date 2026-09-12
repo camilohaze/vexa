@@ -3,7 +3,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../../app/router.dart';
+import '../../../../core/config/env.dart';
 import '../../../../core/theme/vexa_colors.dart';
+import '../../../../core/widgets/address_search_unavailable_notice.dart';
 import '../../../../core/widgets/company_app_bar.dart';
 import '../../../../core/widgets/company_field.dart';
 import '../../../jobs/data/jobs_repository.dart';
@@ -165,6 +167,7 @@ class _DestinationLocationPageState extends ConsumerState<DestinationLocationPag
               ],
             ),
           ),
+          if (!Env.hasMapbox) const AddressSearchUnavailableNotice(),
           Padding(
             padding: const EdgeInsets.all(24),
             child: Column(
