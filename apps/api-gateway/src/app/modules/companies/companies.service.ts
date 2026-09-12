@@ -169,6 +169,12 @@ export class CompaniesService {
       .getRawMany();
   }
 
+  async updateFcmToken(user: AuthenticatedUser, fcmToken: string) {
+    const company = await this.getForUser(user);
+    company.fcmToken = fcmToken;
+    return this.repo.save(company);
+  }
+
   async assertAccess(companyId: string, user: AuthenticatedUser) {
     if (user.role === UserRole.ADMIN) return;
     const company = await this.getById(companyId);

@@ -6,6 +6,7 @@ import { CompaniesService } from './companies.service';
 import { CreateCompanyDto } from './dto/create-company.dto';
 import { CreatePaymentMethodDto } from './dto/payment-method.dto';
 import { UpdateCompanySettingsDto } from './dto/company-settings.dto';
+import { UpdateFcmTokenDto } from './dto/fcm-token.dto';
 
 @ApiTags(ApiRoutes.COMPANIES)
 @ApiBearerAuth()
@@ -83,6 +84,12 @@ export class CompaniesController {
   @Roles(UserRole.COMPANY)
   updateSettings(@CurrentUser() user: AuthenticatedUser, @Body() dto: UpdateCompanySettingsDto) {
     return this.companies.updateSettings(user, dto);
+  }
+
+  @Patch('me/fcm-token')
+  @Roles(UserRole.COMPANY)
+  updateFcmToken(@CurrentUser() user: AuthenticatedUser, @Body() dto: UpdateFcmTokenDto) {
+    return this.companies.updateFcmToken(user, dto.fcmToken);
   }
 
   @Post()

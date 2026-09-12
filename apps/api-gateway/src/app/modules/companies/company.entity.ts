@@ -30,6 +30,9 @@ export class CompanyEntity {
   @Column({ name: 'is_active', default: true })
   isActive!: boolean;
 
+  @Column({ name: 'fcm_token', type: 'varchar', nullable: true })
+  fcmToken?: string | null;
+
   @CreateDateColumn({ name: 'created_at', type: 'timestamptz' })
   createdAt!: Date;
 
