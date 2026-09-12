@@ -3,8 +3,8 @@ import 'package:flutter/foundation.dart';
 
 import '../../../core/network/api_client.dart';
 import '../../../core/storage/secure_storage.dart';
+import '../domain/app_user.dart';
 import '../domain/auth_state.dart';
-import '../domain/courier_user.dart';
 
 class AuthRepository {
   AuthRepository({required ApiClient api, required SecureStorage storage})
@@ -94,7 +94,7 @@ class AuthRepository {
     );
   }
 
-  Future<CourierUser> completeLogin({
+  Future<AppUser> completeLogin({
     required String accessToken,
     required String refreshToken,
   }) async {
@@ -122,9 +122,9 @@ class AuthRepository {
     }
   }
 
-  Future<CourierUser> fetchMe() async {
+  Future<AppUser> fetchMe() async {
     final response = await _api.dio.get<Map<String, dynamic>>('/users/me');
-    return CourierUser.fromJson(response.data ?? const {});
+    return AppUser.fromJson(response.data ?? const {});
   }
 
   Future<String?> refresh() => _api.refreshTokens();
@@ -141,12 +141,10 @@ class AuthRepository {
 
   Future<String?> accessToken() => _storage.readAccessToken();
 
-  Future<void> registerDevice(String fcmToken) async {
+  Future<void> registerDevice(String fcmToken, {required String role}) async {
+    final path = role == 'COMPANY' ? '/companies/me/fcm-token' : '/couriers/me/fcm-token';
     try {
-      await _api.dio.patch<void>(
-        '/couriers/me/fcm-token',
-        data: {'fcmToken': fcmToken},
-      );
+      await _api.dio.patch<void>(path, data: {'fcmToken': fcmToken});
     } catch (error) {
       debugPrint('Auth: device registration failed ($error)');
     }

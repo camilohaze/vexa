@@ -116,7 +116,7 @@ class _DeliveryAcceptedPageState extends ConsumerState<DeliveryAcceptedPage> {
               const SizedBox(height: 12),
               OutlinedButton(
                 onPressed: () =>
-                    context.push(AppRoutes.jobChat(widget.jobId)),
+                    context.push(AppRoutes.courierJobChat(widget.jobId)),
                 child: const Text('Contactar despacho'),
               ),
             ],

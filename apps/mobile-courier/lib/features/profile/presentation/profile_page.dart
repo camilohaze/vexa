@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 
 import '../../../app/router.dart';
 import '../../../core/theme/vexa_colors.dart';
+import '../../../core/widgets/menu_item_tile.dart';
 import '../../../core/widgets/vexa_bottom_nav.dart';
 import '../../auth/providers.dart';
 import '../../tracking/providers.dart';
@@ -76,7 +77,7 @@ class ProfilePage extends ConsumerWidget {
                   style: TextStyle(fontSize: 12)),
               trailing: TextButton(
                 onPressed: () =>
-                    context.push(AppRoutes.vehicleRegistration),
+                    context.push(AppRoutes.courierVehicleRegistration),
                 child: const Text('Gestionar'),
               ),
             ),
@@ -96,7 +97,7 @@ class ProfilePage extends ConsumerWidget {
           ),
           const SizedBox(height: 12),
           OutlinedButton.icon(
-            onPressed: () => context.push(AppRoutes.verification),
+            onPressed: () => context.push(AppRoutes.courierVerification),
             icon: const Icon(Icons.verified_user_outlined),
             label: const Text('Centro de verificación'),
           ),
@@ -122,19 +123,21 @@ class ProfilePage extends ConsumerWidget {
               }
             },
           ),
-          _MenuItem(Icons.notifications_outlined, 'Notificaciones',
-              () => context.push(AppRoutes.notificationSettings)),
-          _MenuItem(Icons.emoji_events_outlined, 'Recompensas',
-              () => context.push(AppRoutes.rewards)),
-          _MenuItem(Icons.card_giftcard, 'Invita y gana',
-              () => context.push(AppRoutes.refer)),
-          _MenuItem(Icons.help_outline, 'Centro de ayuda',
-              () => context.push(AppRoutes.help)),
-          _MenuItem(Icons.quiz_outlined, 'Preguntas frecuentes',
-              () => context.push(AppRoutes.faq)),
-          _MenuItem(Icons.gavel_outlined, 'Términos y condiciones',
+          MenuItemTile(Icons.history, 'Historial de entregas',
+              () => context.push(AppRoutes.courierHistory)),
+          MenuItemTile(Icons.notifications_outlined, 'Notificaciones',
+              () => context.push(AppRoutes.courierNotificationSettings)),
+          MenuItemTile(Icons.emoji_events_outlined, 'Recompensas',
+              () => context.push(AppRoutes.courierRewards)),
+          MenuItemTile(Icons.card_giftcard, 'Invita y gana',
+              () => context.push(AppRoutes.courierRefer)),
+          MenuItemTile(Icons.help_outline, 'Centro de ayuda',
+              () => context.push(AppRoutes.courierHelp)),
+          MenuItemTile(Icons.quiz_outlined, 'Preguntas frecuentes',
+              () => context.push(AppRoutes.courierFaq)),
+          MenuItemTile(Icons.gavel_outlined, 'Términos y condiciones',
               () => context.push(AppRoutes.terms)),
-          _MenuItem(Icons.privacy_tip_outlined, 'Política de privacidad',
+          MenuItemTile(Icons.privacy_tip_outlined, 'Política de privacidad',
               () => context.push(AppRoutes.privacy)),
           const Divider(height: 32),
           OutlinedButton.icon(
@@ -145,7 +148,7 @@ class ProfilePage extends ConsumerWidget {
           const SizedBox(height: 16),
         ],
       ),
-      bottomNavigationBar: const VexaBottomNav(current: 3),
+      bottomNavigationBar: const VexaBottomNav(current: 3, items: VexaBottomNav.courierItems),
     );
   }
 }
@@ -216,25 +219,6 @@ class _DocRow extends StatelessWidget {
                     ? VexaColors.success700
                     : VexaColors.warning700)),
       ),
-    );
-  }
-}
-
-class _MenuItem extends StatelessWidget {
-  const _MenuItem(this.icon, this.label, this.onTap);
-
-  final IconData icon;
-  final String label;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    return ListTile(
-      contentPadding: EdgeInsets.zero,
-      leading: Icon(icon),
-      title: Text(label),
-      trailing: const Icon(Icons.chevron_right, color: VexaColors.gray400),
-      onTap: onTap,
     );
   }
 }

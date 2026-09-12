@@ -79,7 +79,7 @@ class JobOfferCard extends StatelessWidget {
             ),
             const SizedBox(height: 12),
             FilledButton(
-              onPressed: () => context.push(AppRoutes.job(job.id)),
+              onPressed: () => context.push(AppRoutes.courierJob(job.id)),
               child: const Text('Ver detalles'),
             ),
           ],

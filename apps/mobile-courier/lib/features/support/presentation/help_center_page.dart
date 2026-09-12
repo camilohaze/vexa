@@ -111,7 +111,7 @@ class HelpCenterPage extends ConsumerWidget {
           ),
           const SizedBox(height: 8),
           FilledButton.icon(
-            onPressed: () => context.push(AppRoutes.supportChat),
+            onPressed: () => context.push(AppRoutes.courierSupportChat),
             icon: const Icon(Icons.chat_bubble_outline, size: 18),
             label: const Text('Contactar soporte en vivo'),
           ),

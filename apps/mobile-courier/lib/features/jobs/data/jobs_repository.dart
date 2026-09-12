@@ -2,6 +2,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/network/api_client.dart';
 import '../../../core/network/realtime_client.dart';
+import '../../../core/utils/json_parse.dart';
 import '../domain/job.dart';
 
 class JobsRepository {
@@ -81,6 +82,82 @@ class JobsRepository {
         if (proofOfDeliveryUrl != null) 'proofOfDeliveryUrl': proofOfDeliveryUrl,
       },
     );
+    return Job.fromJson(_unwrap(response.data));
+  }
+
+  /// Crea un envío (rol COMPANY). [pickup]/[dropoff] deben incluir line1/city/lat/lng.
+  Future<Job> create({
+    required Map<String, dynamic> pickup,
+    required Map<String, dynamic> dropoff,
+    required double price,
+    String? notes,
+    String? packageType,
+    double? weightKg,
+    Map<String, dynamic>? dimensions,
+    bool? fragile,
+    bool? refrigerated,
+    String priority = 'standard',
+    Map<String, dynamic>? priceBreakdown,
+    double? durationSeconds,
+  }) async {
+    final response = await _api.dio.post<dynamic>('/jobs', data: {
+      'pickup': pickup,
+      'dropoff': dropoff,
+      'price': price,
+      if (notes != null) 'notes': notes,
+      if (packageType != null) 'packageType': packageType,
+      if (weightKg != null) 'weightKg': weightKg,
+      if (dimensions != null) 'dimensions': dimensions,
+      if (fragile != null) 'fragile': fragile,
+      if (refrigerated != null) 'refrigerated': refrigerated,
+      'priority': priority,
+      if (priceBreakdown != null) 'priceBreakdown': priceBreakdown,
+      if (durationSeconds != null) 'durationSeconds': durationSeconds,
+    });
+    return Job.fromJson(_unwrap(response.data));
+  }
+
+  Future<Map<String, dynamic>> priceEstimate({
+    required double pickupLat,
+    required double pickupLng,
+    required double dropoffLat,
+    required double dropoffLng,
+    double? weightKg,
+    String priority = 'standard',
+  }) async {
+    final response = await _api.dio.get<Map<String, dynamic>>('/jobs/price-estimate', queryParameters: {
+      'pickupLat': pickupLat,
+      'pickupLng': pickupLng,
+      'dropoffLat': dropoffLat,
+      'dropoffLng': dropoffLng,
+      if (weightKg != null) 'weightKg': weightKg,
+      'priority': priority,
+    });
+    return response.data ?? const {};
+  }
+
+  /// Historial de envíos entregados (rol COMPANY), con estadísticas agregadas.
+  Future<({List<Job> items, int totalCount, double totalSpend})> history({
+    String? search,
+  }) async {
+    final response = await _api.dio.get<Map<String, dynamic>>('/jobs/history', queryParameters: {
+      if (search != null && search.isNotEmpty) 'search': search,
+    });
+    final data = response.data ?? const {};
+    final stats = data['stats'] is Map ? Map<String, dynamic>.from(data['stats']) : const {};
+    return (
+      items: _parseList(data['items']),
+      totalCount: asInt(stats['totalCount']),
+      totalSpend: asDouble(stats['totalSpend']),
+    );
+  }
+
+  /// Company califica al repartidor tras la entrega.
+  Future<Job> rate(String id, {required int score, String? comment}) async {
+    final response = await _api.dio.post<dynamic>('/jobs/$id/rate', data: {
+      'score': score,
+      if (comment != null) 'comment': comment,
+    });
     return Job.fromJson(_unwrap(response.data));
   }
 

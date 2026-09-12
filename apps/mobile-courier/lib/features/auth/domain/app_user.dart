@@ -1,5 +1,8 @@
-class CourierUser {
-  const CourierUser({
+/// Usuario autenticado, común a cualquier rol (COURIER/COMPANY). Los campos
+/// vienen tal cual del `/users/me` plano — el perfil específico de cada rol
+/// (empresa o repartidor) se carga aparte, contra el `me` de su propio módulo.
+class AppUser {
+  const AppUser({
     required this.id,
     required this.email,
     required this.fullName,
@@ -9,9 +12,9 @@ class CourierUser {
     this.rating,
   });
 
-  factory CourierUser.fromJson(Map<String, dynamic> json) {
+  factory AppUser.fromJson(Map<String, dynamic> json) {
     final courier = json['courier'];
-    return CourierUser(
+    return AppUser(
       id: json['id'] as String,
       email: json['email'] as String? ?? '',
       fullName: json['fullName'] as String? ?? '',
@@ -30,6 +33,9 @@ class CourierUser {
   final String? avatarUrl;
   final String? courierId;
   final double? rating;
+
+  bool get isCompany => role == 'COMPANY';
+  bool get isCourier => role == 'COURIER';
 
   String get trackingId => courierId ?? id;
 

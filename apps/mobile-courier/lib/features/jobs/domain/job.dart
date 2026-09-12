@@ -1,3 +1,5 @@
+import '../../../core/utils/json_parse.dart';
+
 enum JobStatus {
   pending('PENDING', 'Pendiente'),
   offered('OFFERED', 'Ofertado'),
@@ -64,6 +66,22 @@ class Address {
       };
 }
 
+class JobDimensions {
+  const JobDimensions({required this.l, required this.w, required this.h});
+
+  factory JobDimensions.fromJson(Map<String, dynamic> json) => JobDimensions(
+        l: (json['l'] as num?)?.toDouble() ?? 0,
+        w: (json['w'] as num?)?.toDouble() ?? 0,
+        h: (json['h'] as num?)?.toDouble() ?? 0,
+      );
+
+  final double l;
+  final double w;
+  final double h;
+
+  Map<String, dynamic> toJson() => {'l': l, 'w': w, 'h': h};
+}
+
 class Job {
   const Job({
     required this.id,
@@ -74,34 +92,63 @@ class Job {
     required this.price,
     required this.createdAt,
     this.courierId,
+    this.courierName,
+    this.courierAvatarUrl,
     this.distanceMeters,
     this.durationSeconds,
     this.notes,
+    this.packageType,
+    this.weightKg,
+    this.dimensions,
+    this.priority = 'standard',
+    this.ratingScore,
+    this.ratingComment,
+    this.priceBreakdown,
     this.proofOfDeliveryUrl,
     this.acceptedAt,
+    this.pickedUpAt,
     this.completedAt,
   });
 
-  factory Job.fromJson(Map<String, dynamic> json) => Job(
-        id: json['id'] as String,
-        companyId: json['companyId'] as String? ?? '',
-        courierId: json['courierId'] as String?,
-        status: JobStatus.fromValue(json['status']),
-        pickup: Address.fromJson(_map(json['pickup'])),
-        dropoff: Address.fromJson(_map(json['dropoff'])),
-        price: (json['price'] as num?)?.toDouble() ?? 0,
-        distanceMeters: (json['distanceMeters'] as num?)?.toDouble(),
-        durationSeconds: (json['durationSeconds'] as num?)?.toDouble(),
-        notes: json['notes'] as String?,
-        proofOfDeliveryUrl: json['proofOfDeliveryUrl'] as String?,
-        createdAt: _date(json['createdAt']) ?? DateTime.now(),
-        acceptedAt: _date(json['acceptedAt']),
-        completedAt: _date(json['completedAt']),
-      );
+  factory Job.fromJson(Map<String, dynamic> json) {
+    final courier = json['courier'];
+    final courierUser = courier is Map ? courier['user'] : null;
+    return Job(
+      id: json['id'] as String,
+      companyId: json['companyId'] as String? ?? '',
+      courierId: json['courierId'] as String?,
+      courierName: courierUser is Map ? courierUser['fullName'] as String? : null,
+      courierAvatarUrl: courierUser is Map ? courierUser['avatarUrl'] as String? : null,
+      status: JobStatus.fromValue(json['status']),
+      pickup: Address.fromJson(_map(json['pickup'])),
+      dropoff: Address.fromJson(_map(json['dropoff'])),
+      price: asDouble(json['price']),
+      distanceMeters: asDoubleOrNull(json['distanceMeters']),
+      durationSeconds: asDoubleOrNull(json['durationSeconds']),
+      notes: json['notes'] as String?,
+      packageType: json['packageType'] as String?,
+      weightKg: asDoubleOrNull(json['weightKg']),
+      dimensions: json['dimensions'] is Map
+          ? JobDimensions.fromJson(_map(json['dimensions']))
+          : null,
+      priority: json['priority'] as String? ?? 'standard',
+      ratingScore: asIntOrNull(json['ratingScore']),
+      ratingComment: json['ratingComment'] as String?,
+      priceBreakdown:
+          json['priceBreakdown'] is Map ? _map(json['priceBreakdown']) : null,
+      proofOfDeliveryUrl: json['proofOfDeliveryUrl'] as String?,
+      createdAt: _date(json['createdAt']) ?? DateTime.now(),
+      acceptedAt: _date(json['acceptedAt']),
+      pickedUpAt: _date(json['pickedUpAt']),
+      completedAt: _date(json['completedAt']),
+    );
+  }
 
   final String id;
   final String companyId;
   final String? courierId;
+  final String? courierName;
+  final String? courierAvatarUrl;
   final JobStatus status;
   final Address pickup;
   final Address dropoff;
@@ -109,9 +156,17 @@ class Job {
   final double? distanceMeters;
   final double? durationSeconds;
   final String? notes;
+  final String? packageType;
+  final double? weightKg;
+  final JobDimensions? dimensions;
+  final String priority;
+  final int? ratingScore;
+  final String? ratingComment;
+  final Map<String, dynamic>? priceBreakdown;
   final String? proofOfDeliveryUrl;
   final DateTime createdAt;
   final DateTime? acceptedAt;
+  final DateTime? pickedUpAt;
   final DateTime? completedAt;
 
   double? get distanceKm =>

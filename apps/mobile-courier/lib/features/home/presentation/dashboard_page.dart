@@ -37,7 +37,7 @@ class DashboardPage extends ConsumerWidget {
             content: Text('Nueva oferta: ${job.pickup.short}'),
             action: SnackBarAction(
               label: 'Ver',
-              onPressed: () => context.push(AppRoutes.job(job.id)),
+              onPressed: () => context.push(AppRoutes.courierJob(job.id)),
             ),
           ),
         );
@@ -128,7 +128,7 @@ class DashboardPage extends ConsumerWidget {
                             style: TextStyle(
                                 fontSize: 12, color: Colors.white70)),
                         GestureDetector(
-                          onTap: () => context.go(AppRoutes.earnings),
+                          onTap: () => context.go(AppRoutes.courierEarnings),
                           child: const Text('Ver desglose',
                               style: TextStyle(
                                   fontSize: 12,
@@ -149,7 +149,7 @@ class DashboardPage extends ConsumerWidget {
                   const SizedBox(width: 12),
                   _StatBox(label: 'Esta semana', value: '${(earnings.valueOrNull?.completed ?? 0)} pedidos'),
                   const SizedBox(width: 12),
-                  _StatBox(label: 'Rating', value: '★ ${(user?.rating ?? 0).toStringAsFixed(2)}'),
+                  _StatBox(label: 'Rating', value: '★ ${(earnings.valueOrNull?.rating ?? 0).toStringAsFixed(2)}'),
                 ],
               ),
               const SizedBox(height: 24),
@@ -164,7 +164,7 @@ class DashboardPage extends ConsumerWidget {
                         ?.copyWith(fontWeight: FontWeight.w700),
                   ),
                   TextButton(
-                    onPressed: () => context.go(AppRoutes.jobBoard),
+                    onPressed: () => context.go(AppRoutes.courierJobBoard),
                     child: const Text('Ver todas'),
                   ),
                 ],
@@ -203,7 +203,7 @@ class DashboardPage extends ConsumerWidget {
           ),
         ),
       ),
-      bottomNavigationBar: const VexaBottomNav(current: 0),
+      bottomNavigationBar: const VexaBottomNav(current: 0, items: VexaBottomNav.courierItems),
     );
   }
 }

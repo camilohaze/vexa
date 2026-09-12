@@ -130,7 +130,7 @@ class _PickupConfirmationPageState
     try {
       await ref.read(jobDetailProvider(widget.jobId).notifier).pickUp();
       if (!mounted) return;
-      await context.push(AppRoutes.jobDelivery(widget.jobId));
+      await context.push(AppRoutes.courierJobDelivery(widget.jobId));
     } catch (_) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(

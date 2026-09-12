@@ -1,4 +1,4 @@
-import 'courier_user.dart';
+import 'app_user.dart';
 
 enum AuthProvider {
   google('google', 'Google'),
@@ -23,5 +23,5 @@ final class Unauthenticated extends AuthState {
 final class Authenticated extends AuthState {
   const Authenticated(this.user);
 
-  final CourierUser user;
+  final AppUser user;
 }

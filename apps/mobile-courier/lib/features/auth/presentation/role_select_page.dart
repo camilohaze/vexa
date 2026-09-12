@@ -4,8 +4,7 @@ import 'package:go_router/go_router.dart';
 import '../../../app/router.dart';
 import '../../../core/theme/vexa_colors.dart';
 
-/// Figma: select-role. En la app de repartidores, COURIER está
-/// preseleccionado; COMPANY informa que debe usar el portal web.
+/// Figma: select-role. Ambos roles llevan a un registro y home funcionales.
 class RoleSelectPage extends StatefulWidget {
   const RoleSelectPage({super.key});
 

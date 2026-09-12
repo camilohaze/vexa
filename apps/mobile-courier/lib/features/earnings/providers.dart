@@ -32,6 +32,7 @@ class EarningsSummary {
     required this.breakdown,
     required this.today,
     required this.completed,
+    this.rating = 0,
   });
 
   final double total;
@@ -41,6 +42,7 @@ class EarningsSummary {
   final double pending;
   final double today;
   final int completed;
+  final double rating;
 
   /// Ingresos por día (Lun–Dom), normalizados 0..1.
   final List<double> dailyBars;
@@ -68,6 +70,7 @@ final earningsSummaryProvider = FutureProvider<EarningsSummary>((ref) async {
       pending: 0,
       today: (data['today'] as num?)?.toDouble() ?? 0,
       completed: (data['completed'] as num?)?.toInt() ?? 0,
+      rating: (data['rating'] as num?)?.toDouble() ?? 0,
       dailyBars: dailyBars,
       breakdown: breakdown,
     );

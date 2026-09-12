@@ -8,8 +8,8 @@ import '../../core/network/realtime_client.dart';
 import '../../core/notifications/push_service.dart';
 import '../../core/storage/secure_storage.dart';
 import 'data/auth_repository.dart';
+import 'domain/app_user.dart';
 import 'domain/auth_state.dart';
-import 'domain/courier_user.dart';
 
 final authRepositoryProvider = Provider<AuthRepository>(
   (ref) => AuthRepository(
@@ -121,28 +121,28 @@ class AuthNotifier extends AsyncNotifier<AuthState> {
   Future<void> _onStateChanged(AuthState next) async {
     final realtime = ref.read(realtimeClientProvider);
     switch (next) {
-      case Authenticated():
+      case Authenticated(:final user):
         final token = await _repository.accessToken();
         if (token != null) realtime.connect(token);
-        unawaited(_registerPushToken());
+        unawaited(_registerPushToken(user.role));
       case Unauthenticated():
         realtime.disconnect();
     }
   }
 
-  Future<void> _registerPushToken() async {
+  Future<void> _registerPushToken(String role) async {
     final push = ref.read(pushServiceProvider);
     if (!push.isAvailable) return;
     if (!await push.requestPermission()) return;
     final token = await push.getToken();
-    if (token != null) await _repository.registerDevice(token);
+    if (token != null) await _repository.registerDevice(token, role: role);
   }
 }
 
 final authStateProvider =
     AsyncNotifierProvider<AuthNotifier, AuthState>(AuthNotifier.new);
 
-final currentUserProvider = Provider<CourierUser?>((ref) {
+final currentUserProvider = Provider<AppUser?>((ref) {
   final auth = ref.watch(authStateProvider);
   return switch (auth) {
     AsyncData(value: Authenticated(:final user)) => user,

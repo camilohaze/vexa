@@ -80,7 +80,7 @@ class _EarningsPageState extends ConsumerState<EarningsPage> {
                 FilledButton(
                   style: FilledButton.styleFrom(
                       backgroundColor: VexaColors.primary600),
-                  onPressed: () => context.push(AppRoutes.withdraw),
+                  onPressed: () => context.push(AppRoutes.courierWithdraw),
                   child: const Text('Retirar fondos'),
                 ),
               ],
@@ -126,7 +126,7 @@ class _EarningsPageState extends ConsumerState<EarningsPage> {
           ),
         ],
       ),
-      bottomNavigationBar: const VexaBottomNav(current: 2),
+      bottomNavigationBar: const VexaBottomNav(current: 2, items: VexaBottomNav.courierItems),
     );
   }
 }

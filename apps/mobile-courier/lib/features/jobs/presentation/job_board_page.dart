@@ -66,7 +66,7 @@ class JobBoardPage extends ConsumerWidget {
           ),
         ],
       ),
-      bottomNavigationBar: const VexaBottomNav(current: 1),
+      bottomNavigationBar: const VexaBottomNav(current: 1, items: VexaBottomNav.courierItems),
     );
   }
 

@@ -142,7 +142,7 @@ class _JobDetail extends ConsumerWidget {
       JobStatus.offered => [
           FilledButton(
             onPressed: () => run(notifier.accept,
-                track: true, goTo: AppRoutes.jobAccepted(job.id)),
+                track: true, goTo: AppRoutes.courierJobAccepted(job.id)),
             child: const Text('Aceptar entrega'),
           ),
           const SizedBox(height: 12),
@@ -159,14 +159,14 @@ class _JobDetail extends ConsumerWidget {
           ),
           const SizedBox(height: 12),
           OutlinedButton.icon(
-            onPressed: () => context.push(AppRoutes.jobChat(job.id)),
+            onPressed: () => context.push(AppRoutes.courierJobChat(job.id)),
             icon: const Icon(Icons.chat_bubble_outline, size: 18),
             label: const Text('Contactar empresa'),
           ),
         ],
       JobStatus.pickedUp || JobStatus.inTransit => [
           FilledButton(
-            onPressed: () => context.push(AppRoutes.jobDelivery(job.id)),
+            onPressed: () => context.push(AppRoutes.courierJobDelivery(job.id)),
             child: const Text('Confirmar entrega'),
           ),
           const SizedBox(height: 12),
@@ -179,7 +179,7 @@ class _JobDetail extends ConsumerWidget {
         ],
       JobStatus.delivered => [
           FilledButton.tonalIcon(
-            onPressed: () => context.push(AppRoutes.jobProof(job.id)),
+            onPressed: () => context.push(AppRoutes.courierJobProof(job.id)),
             icon: const Icon(Icons.receipt_long),
             label: const Text('Ver comprobante'),
           ),

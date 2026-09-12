@@ -50,7 +50,7 @@ class WalletPage extends ConsumerWidget {
                             fontSize: 10, letterSpacing: 0.8,
                             color: Colors.white70, fontWeight: FontWeight.w600)),
                     OutlinedButton(
-                      onPressed: () => context.push(AppRoutes.withdraw),
+                      onPressed: () => context.push(AppRoutes.courierWithdraw),
                       style: OutlinedButton.styleFrom(
                         foregroundColor: Colors.white,
                         side: const BorderSide(color: Colors.white54),

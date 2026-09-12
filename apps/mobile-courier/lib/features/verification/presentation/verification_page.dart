@@ -24,12 +24,12 @@ class VerificationPage extends ConsumerWidget {
     'identity': (
       'Verificación de identidad',
       'Documento con foto oficial',
-      AppRoutes.identityVerification
+      AppRoutes.courierIdentityVerification
     ),
     'vehicle': (
       'Registro del vehículo',
       'Prueba de propiedad / contrato',
-      AppRoutes.vehicleRegistration
+      AppRoutes.courierVehicleRegistration
     ),
     'insurance': ('Seguro comercial', 'Póliza vigente activa', null),
     'background': ('Antecedentes penales', 'Verificación de antecedentes', null),

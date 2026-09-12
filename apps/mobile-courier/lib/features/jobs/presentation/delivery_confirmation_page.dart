@@ -171,7 +171,7 @@ class _DeliveryConfirmationPageState
           .read(jobDetailProvider(widget.jobId).notifier)
           .complete(proofOfDeliveryUrl: _proofUrl);
       if (!mounted) return;
-      await context.push(AppRoutes.jobProof(widget.jobId));
+      await context.push(AppRoutes.courierJobProof(widget.jobId));
     } catch (_) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
