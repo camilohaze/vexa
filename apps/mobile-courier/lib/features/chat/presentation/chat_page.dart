@@ -8,10 +8,14 @@ import '../providers.dart';
 
 /// Chat 1:1 con la empresa asignada al pedido (REST + socket JOB_MESSAGE).
 class ChatPage extends ConsumerStatefulWidget {
-  const ChatPage({super.key, required this.jobId, this.peerName});
+  const ChatPage({super.key, required this.jobId, this.peerName, this.subtitle});
 
   final String jobId;
   final String? peerName;
+
+  /// Texto bajo el nombre del contacto. Si es nulo, se arma a partir del
+  /// [jobId] como referencia de pedido ("Entrega #XXXXXX").
+  final String? subtitle;
 
   @override
   ConsumerState<ChatPage> createState() => _ChatPageState();
@@ -54,7 +58,8 @@ class _ChatPageState extends ConsumerState<ChatPage> {
                 children: [
                   Text(peer, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
                   Text(
-                    'Entrega #${widget.jobId.substring(0, widget.jobId.length.clamp(0, 6)).toUpperCase()}',
+                    widget.subtitle ??
+                        'Entrega #${widget.jobId.substring(0, widget.jobId.length.clamp(0, 6)).toUpperCase()}',
                     style: const TextStyle(fontSize: 12, color: VexaColors.gray500),
                   ),
                 ],

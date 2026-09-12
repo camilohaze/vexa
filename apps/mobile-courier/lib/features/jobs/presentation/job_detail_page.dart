@@ -43,6 +43,7 @@ class _JobDetail extends ConsumerWidget {
       decimalDigits: 0,
     ).format(job.price);
     final refCode = 'VX-${job.id.substring(0, job.id.length.clamp(0, 6)).toUpperCase()}';
+    final label = job.status == JobStatus.offered ? 'Oferta' : 'Pedido';
 
     return Scaffold(
       appBar: AppBar(
@@ -61,7 +62,7 @@ class _JobDetail extends ConsumerWidget {
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    Text('Oferta #$refCode',
+                    Text('$label #$refCode',
                         style: theme.textTheme.titleSmall
                             ?.copyWith(color: VexaColors.gray500)),
                     Text(price,

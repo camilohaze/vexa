@@ -1,4 +1,5 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:intl/intl.dart';
 
 import '../profile/data/courier_repository.dart';
 
@@ -32,6 +33,7 @@ class EarningsSummary {
     required this.breakdown,
     required this.today,
     required this.completed,
+    this.month = 0,
     this.rating = 0,
   });
 
@@ -41,6 +43,7 @@ class EarningsSummary {
   final double available;
   final double pending;
   final double today;
+  final double month;
   final int completed;
   final double rating;
 
@@ -54,6 +57,7 @@ final earningsSummaryProvider = FutureProvider<EarningsSummary>((ref) async {
     final data =
         await ref.watch(courierRepositoryProvider).fetchEarnings();
     final week = (data['week'] as num?)?.toDouble() ?? 0;
+    final month = (data['month'] as num?)?.toDouble() ?? week;
     final rawBars = (data['dailyBars'] as List?)?.whereType<num>().toList();
     final dailyBars = rawBars?.map((n) => n.toDouble()).toList() ??
         const [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0];
@@ -66,9 +70,10 @@ final earningsSummaryProvider = FutureProvider<EarningsSummary>((ref) async {
       total: week,
       tips: 0,
       bonuses: 0,
-      available: (data['month'] as num?)?.toDouble() ?? week,
+      available: month,
       pending: 0,
       today: (data['today'] as num?)?.toDouble() ?? 0,
+      month: month,
       completed: (data['completed'] as num?)?.toInt() ?? 0,
       rating: (data['rating'] as num?)?.toDouble() ?? 0,
       dailyBars: dailyBars,
@@ -98,7 +103,7 @@ final walletTransactionsProvider =
         .map(
           (tx) => WalletTransaction(
             title: tx['title'] as String? ?? 'Movimiento',
-            subtitle: tx['at'] as String? ?? '',
+            subtitle: _formatDate(tx['at'] as String?),
             amount: (tx['amount'] as num?)?.toDouble() ?? 0,
             status: tx['status'] as String? ?? '',
           ),
@@ -108,3 +113,8 @@ final walletTransactionsProvider =
     return const [];
   }
 });
+
+String _formatDate(String? iso) {
+  final date = iso == null ? null : DateTime.tryParse(iso);
+  return date == null ? '' : DateFormat('d MMM, HH:mm', 'es').format(date);
+}

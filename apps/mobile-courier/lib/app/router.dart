@@ -146,7 +146,7 @@ final routerProvider = Provider<GoRouter>((ref) {
         _ => null,
       };
 
-      const publicPaths = {
+      const authOnlyPaths = {
         AppRoutes.welcome,
         AppRoutes.login,
         AppRoutes.register,
@@ -154,16 +154,21 @@ final routerProvider = Provider<GoRouter>((ref) {
         AppRoutes.resetPassword,
         AppRoutes.verifyEmail,
         AppRoutes.resetVerify,
-        AppRoutes.terms,
-        AppRoutes.privacy,
       };
+      // Términos y privacidad son consultables con o sin sesión activa.
+      const legalPaths = {AppRoutes.terms, AppRoutes.privacy};
       if (user == null) {
-        return publicPaths.contains(location) ? null : AppRoutes.welcome;
+        return authOnlyPaths.contains(location) || legalPaths.contains(location)
+            ? null
+            : AppRoutes.welcome;
       }
 
       final home = user.isCompany ? AppRoutes.companyHome : AppRoutes.courierHome;
-      if (location == AppRoutes.splash || publicPaths.contains(location)) {
+      if (location == AppRoutes.splash || authOnlyPaths.contains(location)) {
         return home;
+      }
+      if (legalPaths.contains(location)) {
+        return null;
       }
       // Cada rol queda confinado a su propio prefijo de rutas.
       final ownPrefix = user.isCompany ? '/company' : '/courier';
@@ -321,8 +326,11 @@ final routerProvider = Provider<GoRouter>((ref) {
       ),
       GoRoute(
         path: AppRoutes.courierSupportChat,
-        builder: (context, state) =>
-            const ChatPage(jobId: 'support', peerName: 'Soporte Vexa'),
+        builder: (context, state) => const ChatPage(
+          jobId: 'support',
+          peerName: 'Soporte Vexa',
+          subtitle: 'Atención al repartidor',
+        ),
       ),
 
       // --- Company ---

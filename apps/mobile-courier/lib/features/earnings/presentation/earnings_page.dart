@@ -34,6 +34,13 @@ class _EarningsPageState extends ConsumerState<EarningsPage> {
           dailyBars: [0, 0, 0, 0, 0, 0, 0], breakdown: [],
         );
     final theme = Theme.of(context);
+    // "Año" reutiliza el total mensual: el backend aún no expone un
+    // agregado anual separado.
+    final periodTotal = switch (_period) {
+      0 => summary.today,
+      1 => summary.total,
+      _ => summary.month,
+    };
 
     return Scaffold(
       appBar: AppBar(title: const Text('Ganancias')),
@@ -65,7 +72,7 @@ class _EarningsPageState extends ConsumerState<EarningsPage> {
                         fontSize: 10, letterSpacing: 0.8,
                         color: Colors.white60, fontWeight: FontWeight.w600)),
                 const SizedBox(height: 8),
-                Text(_money(summary.total),
+                Text(_money(periodTotal),
                     style: theme.textTheme.displaySmall?.copyWith(
                         color: Colors.white, fontWeight: FontWeight.w700)),
                 const SizedBox(height: 12),
