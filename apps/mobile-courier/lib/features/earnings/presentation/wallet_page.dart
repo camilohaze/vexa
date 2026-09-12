@@ -8,18 +8,31 @@ import '../../../core/theme/vexa_colors.dart';
 import '../providers.dart';
 
 /// Figma: courier-wallet — tarjeta azul de saldo, tabs y transacciones.
-class WalletPage extends ConsumerWidget {
+class WalletPage extends ConsumerStatefulWidget {
   const WalletPage({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<WalletPage> createState() => _WalletPageState();
+}
+
+class _WalletPageState extends ConsumerState<WalletPage> {
+  int _tab = 0;
+
+  @override
+  Widget build(BuildContext context) {
     final summary = ref.watch(earningsSummaryProvider).valueOrNull ??
         const EarningsSummary(
           total: 0, tips: 0, bonuses: 0, available: 0, pending: 0,
           today: 0, completed: 0,
           dailyBars: [0, 0, 0, 0, 0, 0, 0], breakdown: [],
         );
-    final txs = ref.watch(walletTransactionsProvider).valueOrNull ?? const <WalletTransaction>[];
+    final earnings = ref.watch(walletTransactionsProvider).valueOrNull ?? const <WalletTransaction>[];
+    final payouts = ref.watch(payoutsProvider).valueOrNull ?? const <WalletTransaction>[];
+    final txs = switch (_tab) {
+      1 => payouts,
+      2 => const <WalletTransaction>[],
+      _ => earnings,
+    };
     final theme = Theme.of(context);
     final money = NumberFormat.currency(
         locale: 'es_CO', symbol: r'$', decimalDigits: 2).format;
@@ -94,8 +107,8 @@ class WalletPage extends ConsumerWidget {
               ButtonSegment(value: 1, label: Text('Retiros')),
               ButtonSegment(value: 2, label: Text('Bonos')),
             ],
-            selected: const {0},
-            onSelectionChanged: (_) {},
+            selected: {_tab},
+            onSelectionChanged: (s) => setState(() => _tab = s.first),
             showSelectedIcon: false,
           ),
           const SizedBox(height: 16),
@@ -103,6 +116,19 @@ class WalletPage extends ConsumerWidget {
               style: theme.textTheme.titleSmall
                   ?.copyWith(fontWeight: FontWeight.w700)),
           const SizedBox(height: 8),
+          if (txs.isEmpty)
+            Padding(
+              padding: const EdgeInsets.symmetric(vertical: 24),
+              child: Center(
+                child: Text(
+                  _tab == 2
+                      ? 'Aún no tienes bonos. Vexa los mostrará aquí cuando se activen.'
+                      : 'Sin movimientos por ahora.',
+                  textAlign: TextAlign.center,
+                  style: const TextStyle(fontSize: 13, color: VexaColors.gray500),
+                ),
+              ),
+            ),
           for (final tx in txs)
             Card(
               margin: const EdgeInsets.only(bottom: 8),

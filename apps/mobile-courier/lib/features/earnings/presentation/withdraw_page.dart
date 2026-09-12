@@ -44,6 +44,7 @@ class _WithdrawPageState extends ConsumerState<WithdrawPage> {
           .read(courierRepositoryProvider)
           .requestPayout(amount, key);
       ref.invalidate(earningsSummaryProvider);
+      ref.invalidate(payoutsProvider);
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Retiro en proceso')),

@@ -63,6 +63,14 @@ class CourierRepository {
   Future<void> requestPayout(double amount, String method) => _api.dio
       .post<dynamic>('/couriers/me/payouts', data: {'amount': amount, 'method': method});
 
+  Future<List<Map<String, dynamic>>> fetchPayouts() async {
+    final response = await _api.dio.get<List<dynamic>>('/couriers/me/payouts');
+    return (response.data ?? const [])
+        .whereType<Map>()
+        .map(Map<String, dynamic>.from)
+        .toList();
+  }
+
   Future<Map<String, dynamic>> fetchMyReviews() async {
     final response =
         await _api.dio.get<Map<String, dynamic>>('/couriers/me/reviews');

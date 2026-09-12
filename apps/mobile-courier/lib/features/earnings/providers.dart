@@ -1,6 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 
+import '../../core/utils/json_parse.dart';
 import '../profile/data/courier_repository.dart';
 
 /// Datos financieros del repartidor (GET /couriers/me/earnings y
@@ -118,3 +119,36 @@ String _formatDate(String? iso) {
   final date = iso == null ? null : DateTime.tryParse(iso);
   return date == null ? '' : DateFormat('d MMM, HH:mm', 'es').format(date);
 }
+
+const _payoutMethodLabels = {
+  'bank_transfer': 'Transferencia bancaria',
+  'paypal': 'PayPal',
+  'nequi': 'Nequi / Billetera móvil',
+};
+
+const _payoutStatusLabels = {
+  'PENDING': 'Pendiente',
+  'PROCESSING': 'Procesando',
+  'COMPLETED': 'Completado',
+  'FAILED': 'Fallido',
+};
+
+final payoutsProvider = FutureProvider<List<WalletTransaction>>((ref) async {
+  try {
+    final items = await ref.watch(courierRepositoryProvider).fetchPayouts();
+    return items
+        .map(
+          (p) => WalletTransaction(
+            title: _payoutMethodLabels[p['method']] ??
+                p['method'] as String? ??
+                'Retiro',
+            subtitle: _formatDate(p['createdAt'] as String?),
+            amount: -asDouble(p['amount']),
+            status: _payoutStatusLabels[p['status']] ?? p['status'] as String? ?? '',
+          ),
+        )
+        .toList();
+  } catch (_) {
+    return const [];
+  }
+});
