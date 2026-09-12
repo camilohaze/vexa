@@ -213,6 +213,13 @@ export class JobsService {
       completedAt: saved.completedAt!.toISOString(),
     };
     await this.redis.publish(RedisChannels.JOB_COMPLETED, event);
+    // Los bonos son un incentivo adicional; un fallo aquí no debe revertir
+    // ni bloquear una entrega ya confirmada.
+    try {
+      await this.couriers.applyDeliveryBonuses(saved.courierId!, saved.id, Number(saved.price));
+    } catch {
+      // noop
+    }
     return saved;
   }
 

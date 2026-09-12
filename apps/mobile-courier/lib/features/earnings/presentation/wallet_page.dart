@@ -28,9 +28,10 @@ class _WalletPageState extends ConsumerState<WalletPage> {
         );
     final earnings = ref.watch(walletTransactionsProvider).valueOrNull ?? const <WalletTransaction>[];
     final payouts = ref.watch(payoutsProvider).valueOrNull ?? const <WalletTransaction>[];
+    final bonuses = ref.watch(bonusesProvider).valueOrNull ?? const <WalletTransaction>[];
     final txs = switch (_tab) {
       1 => payouts,
-      2 => const <WalletTransaction>[],
+      2 => bonuses,
       _ => earnings,
     };
     final theme = Theme.of(context);

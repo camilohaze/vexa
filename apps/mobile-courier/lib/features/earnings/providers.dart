@@ -133,6 +133,29 @@ const _payoutStatusLabels = {
   'FAILED': 'Fallido',
 };
 
+const _bonusTypeLabels = {
+  'LEVEL_MULTIPLIER': 'Bono de nivel',
+  'WEEKLY_QUEST': 'Meta semanal',
+};
+
+final bonusesProvider = FutureProvider<List<WalletTransaction>>((ref) async {
+  try {
+    final items = await ref.watch(courierRepositoryProvider).fetchBonuses();
+    return items
+        .map(
+          (b) => WalletTransaction(
+            title: b['description'] as String? ?? 'Bono',
+            subtitle: _formatDate(b['createdAt'] as String?),
+            amount: asDouble(b['amount']),
+            status: _bonusTypeLabels[b['type']] ?? 'Acreditado',
+          ),
+        )
+        .toList();
+  } catch (_) {
+    return const [];
+  }
+});
+
 final payoutsProvider = FutureProvider<List<WalletTransaction>>((ref) async {
   try {
     final items = await ref.watch(courierRepositoryProvider).fetchPayouts();

@@ -1,6 +1,6 @@
 import { BadRequestException, ConflictException, Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Between, Repository } from 'typeorm';
+import { Between, MoreThanOrEqual, Repository } from 'typeorm';
 import { RedisService } from '@vexa/core';
 import {
   CourierLocationEvent,
@@ -11,6 +11,7 @@ import {
   RedisChannels,
 } from '@vexa/shared';
 import { JobEntity } from '../jobs/job.entity';
+import { BonusEntity, BonusType } from './bonus.entity';
 import { CourierEntity } from './courier.entity';
 import { PayoutEntity, PayoutStatus } from './payout.entity';
 import {
@@ -30,8 +31,85 @@ export class CouriersService {
     private readonly jobs: Repository<JobEntity>,
     @InjectRepository(PayoutEntity)
     private readonly payouts: Repository<PayoutEntity>,
+    @InjectRepository(BonusEntity)
+    private readonly bonusesRepo: Repository<BonusEntity>,
     private readonly redis: RedisService
   ) {}
+
+  /** Puntos, nivel y multiplicador de pago del repartidor, derivados del historial. */
+  private async currentTier(courierId: string) {
+    const delivered = await this.jobs.countBy({ courierId, status: JobStatus.DELIVERED });
+    const points = delivered * 10;
+    const tier = points >= 5000 ? 'ORO' : points >= 2000 ? 'PLATA' : 'BRONCE';
+    const multiplier = tier === 'ORO' ? 5 : tier === 'PLATA' ? 3 : 2;
+    return { delivered, points, tier, multiplier };
+  }
+
+  private startOfWeek(date: Date) {
+    const start = new Date(date);
+    const mondayOffset = (start.getDay() + 6) % 7; // Lunes = 0
+    start.setHours(0, 0, 0, 0);
+    start.setDate(start.getDate() - mondayOffset);
+    return start;
+  }
+
+  /** Meta semanal: umbral de entregas y monto del bono, ver docs/BONUSES.md. */
+  private readonly weeklyQuestTarget = 5;
+  private readonly weeklyQuestBonus = 15000;
+
+  /**
+   * Calcula y acredita los bonos monetarios de un repartidor al completar un
+   * pedido: el multiplicador de su nivel actual de Recompensas sobre el
+   * precio del pedido, y el bono de meta semanal la primera vez que alcanza
+   * el umbral de entregas en la semana (lunes–domingo) en curso.
+   */
+  async applyDeliveryBonuses(courierId: string, jobId: string, price: number) {
+    const { tier, multiplier } = await this.currentTier(courierId);
+    const levelBonus = Math.round(price * multiplier) / 100;
+    if (levelBonus > 0) {
+      await this.bonusesRepo.save(
+        this.bonusesRepo.create({
+          courierId,
+          jobId,
+          type: BonusType.LEVEL_MULTIPLIER,
+          amount: levelBonus,
+          description: `Bono de nivel ${tier} (+${multiplier}%)`,
+        }),
+      );
+    }
+
+    const weekStart = this.startOfWeek(new Date());
+    const weekCount = await this.jobs.count({
+      where: { courierId, status: JobStatus.DELIVERED, completedAt: MoreThanOrEqual(weekStart) },
+    });
+    if (weekCount >= this.weeklyQuestTarget) {
+      const alreadyCredited = await this.bonusesRepo.existsBy({
+        courierId,
+        type: BonusType.WEEKLY_QUEST,
+        createdAt: MoreThanOrEqual(weekStart),
+      });
+      if (!alreadyCredited) {
+        await this.bonusesRepo.save(
+          this.bonusesRepo.create({
+            courierId,
+            type: BonusType.WEEKLY_QUEST,
+            amount: this.weeklyQuestBonus,
+            description: `Meta semanal: ${this.weeklyQuestTarget} entregas completadas`,
+          }),
+        );
+      }
+    }
+  }
+
+  /** Historial de bonos del repartidor autenticado. */
+  async bonuses(userId: string) {
+    const courier = await this.getByUserId(userId);
+    return this.bonusesRepo.find({
+      where: { courierId: courier.id },
+      order: { createdAt: 'DESC' },
+      take: 50,
+    });
+  }
 
   async findAll() {
     const couriers = await this.repo.find({ relations: { user: true }, order: { createdAt: 'DESC' } });
@@ -121,7 +199,14 @@ export class CouriersService {
     }
     const max = Math.max(...daily, 1);
     const week = delivered.reduce((acc, j) => acc + Number(j.price ?? 0), 0);
-    const month = await this.earningsBetween(courier.id, new Date(now.getTime() - 30 * 86400000), now);
+    const monthStart = new Date(now.getTime() - 30 * 86400000);
+    const monthEarnings = await this.earningsBetween(courier.id, monthStart, now);
+    const monthBonuses = await this.bonusesRepo
+      .createQueryBuilder('b')
+      .select('COALESCE(SUM(b.amount), 0)', 'total')
+      .where('b.courier_id = :id AND b.created_at >= :start', { id: courier.id, start: monthStart })
+      .getRawOne<{ total: string }>();
+    const month = monthEarnings + Number(monthBonuses?.total ?? 0);
     return {
       today: Number(daily[(now.getDay() + 6) % 7] ?? 0),
       week,
@@ -216,12 +301,13 @@ export class CouriersService {
     return this.repo.save(courier);
   }
 
-  /** Solicitud de retiro. El saldo disponible = ganado - retirado/pendiente. */
+  /** Solicitud de retiro. El saldo disponible = ganado (pedidos + bonos) - retirado/pendiente. */
   async requestPayout(userId: string, dto: CreatePayoutDto) {
     const courier = await this.getByUserId(userId);
     const [{ earned }] = await this.jobs.query(
-      `SELECT COALESCE(SUM(price), 0) AS earned FROM jobs
-       WHERE courier_id = $1 AND status = 'DELIVERED'`,
+      `SELECT
+         (SELECT COALESCE(SUM(price), 0) FROM jobs WHERE courier_id = $1 AND status = 'DELIVERED') +
+         (SELECT COALESCE(SUM(amount), 0) FROM bonuses WHERE courier_id = $1) AS earned`,
       [courier.id],
     );
     const [{ held }] = await this.payouts.query(
@@ -354,10 +440,7 @@ export class CouriersService {
   /** Programa de recompensas derivado del historial. */
   async rewards(userId: string) {
     const courier = await this.getByUserId(userId);
-    const delivered = await this.jobs.countBy({ courierId: courier.id, status: JobStatus.DELIVERED });
-    const points = delivered * 10;
-    const tier = points >= 5000 ? 'ORO' : points >= 2000 ? 'PLATA' : 'BRONCE';
-    const multiplier = tier === 'ORO' ? 5 : tier === 'PLATA' ? 3 : 2;
+    const { delivered, points, tier, multiplier } = await this.currentTier(courier.id);
     const benefits = [
       'Multiplicador de pago +$multiplier%',
       'Asignación prioritaria',

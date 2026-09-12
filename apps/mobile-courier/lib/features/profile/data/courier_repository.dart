@@ -71,6 +71,14 @@ class CourierRepository {
         .toList();
   }
 
+  Future<List<Map<String, dynamic>>> fetchBonuses() async {
+    final response = await _api.dio.get<List<dynamic>>('/couriers/me/bonuses');
+    return (response.data ?? const [])
+        .whereType<Map>()
+        .map(Map<String, dynamic>.from)
+        .toList();
+  }
+
   Future<Map<String, dynamic>> fetchMyReviews() async {
     final response =
         await _api.dio.get<Map<String, dynamic>>('/couriers/me/reviews');
