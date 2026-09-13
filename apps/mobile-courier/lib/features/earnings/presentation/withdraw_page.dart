@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:intl/intl.dart';
 
 import '../../../core/theme/vexa_colors.dart';
+import '../../../core/utils/formatters.dart';
 import '../../profile/data/courier_repository.dart';
 import '../providers.dart';
 
@@ -91,9 +91,7 @@ class _WithdrawPageState extends ConsumerState<WithdrawPage> {
                         letterSpacing: 0.6, color: VexaColors.gray500)),
                 const SizedBox(height: 6),
                 Text(
-                  NumberFormat.currency(
-                          locale: 'es_CO', symbol: r'$', decimalDigits: 2)
-                      .format(summary.available),
+                  AppFormatters.money(summary.available),
                   style: theme.textTheme.displaySmall?.copyWith(
                       fontWeight: FontWeight.w700,
                       color: VexaColors.primary700),

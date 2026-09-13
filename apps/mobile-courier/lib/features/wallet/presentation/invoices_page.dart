@@ -1,52 +1,59 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:intl/intl.dart';
 
+import '../../../core/models/paged_result.dart';
 import '../../../core/theme/vexa_colors.dart';
+import '../../../core/utils/formatters.dart';
 import '../../../core/widgets/company_app_bar.dart';
+import '../../../core/widgets/date_range_filter_bar.dart';
+import '../../../core/widgets/pagination_bar.dart';
 import '../providers.dart';
 
-/// Figma: invoices.
+/// Figma: invoices — el "Rango de fechas" ahora filtra de verdad, y la
+/// lista está paginada por el backend.
 class InvoicesPage extends ConsumerWidget {
   const InvoicesPage({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final invoices = ref.watch(companyInvoicesProvider);
-    final money = NumberFormat.currency(locale: 'es_CO', symbol: r'$', decimalDigits: 0).format;
+    final filter = ref.watch(companyInvoicesFilterProvider);
+    final invoices = ref.watch(companyInvoicesProvider(filter));
+    final money = AppFormatters.money;
+
+    void updateFilter(PageDateFilter next) =>
+        ref.read(companyInvoicesFilterProvider.notifier).state = next;
 
     return Scaffold(
       appBar: companyAppBar(context, 'Facturas'),
       body: invoices.when(
         loading: () => const Center(child: CircularProgressIndicator()),
         error: (_, __) => const Center(child: Text('No se pudieron cargar las facturas')),
-        data: (list) => ListView(
+        data: (page) => ListView(
           padding: const EdgeInsets.all(24),
           children: [
-            Row(children: [
-              Expanded(
-                child: OutlinedButton(
-                  onPressed: () {},
-                  child: const Text('Rango de fechas'),
-                ),
+            DateRangeFilterBar(filter: filter, onChanged: updateFilter, padding: EdgeInsets.zero),
+            const SizedBox(height: 12),
+            SizedBox(
+              width: double.infinity,
+              child: FilledButton(
+                onPressed: () => ScaffoldMessenger.of(context)
+                    .showSnackBar(const SnackBar(content: Text('Descarga próximamente'))),
+                child: const Text('Descargar todo'),
               ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: FilledButton(
-                  onPressed: () => ScaffoldMessenger.of(context)
-                      .showSnackBar(const SnackBar(content: Text('Descarga próximamente'))),
-                  child: const Text('Descargar todo'),
-                ),
-              ),
-            ]),
+            ),
             const SizedBox(height: 20),
-            if (list.isEmpty)
-              const Padding(
-                padding: EdgeInsets.only(top: 20),
-                child: Center(child: Text('Aún no hay facturas', style: TextStyle(color: VexaColors.gray500))),
+            if (page.items.isEmpty)
+              Padding(
+                padding: const EdgeInsets.only(top: 20),
+                child: Center(
+                  child: Text(
+                    filter.hasDateRange ? 'Sin facturas en este rango.' : 'Aún no hay facturas',
+                    style: const TextStyle(color: VexaColors.gray500),
+                  ),
+                ),
               )
             else
-              for (final inv in list)
+              for (final inv in page.items)
                 Container(
                   margin: const EdgeInsets.only(bottom: 12),
                   padding: const EdgeInsets.all(16),
@@ -88,6 +95,7 @@ class InvoicesPage extends ConsumerWidget {
                     ),
                   ]),
                 ),
+            PaginationBar(result: page, onPageChanged: (p) => updateFilter(filter.copyWith(page: p))),
           ],
         ),
       ),

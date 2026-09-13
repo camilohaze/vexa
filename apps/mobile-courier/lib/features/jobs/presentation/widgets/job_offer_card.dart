@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
-import 'package:intl/intl.dart';
 
 import '../../../../app/router.dart';
 import '../../../../core/theme/vexa_colors.dart';
+import '../../../../core/utils/formatters.dart';
 import '../../domain/job.dart';
 
 /// Tarjeta de oferta del Job Board / dashboard (Figma: job-card-*).
@@ -19,11 +19,7 @@ class JobOfferCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final price = NumberFormat.currency(
-      locale: 'es_CO',
-      symbol: r'$',
-      decimalDigits: 0,
-    ).format(job.price);
+    final price = AppFormatters.money(job.price);
     final theme = Theme.of(context);
     final posted = _relative(job.createdAt);
 

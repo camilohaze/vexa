@@ -1,6 +1,6 @@
 import { BadRequestException, ConflictException, Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Between, MoreThanOrEqual, Repository } from 'typeorm';
+import { Between, FindOptionsWhere, LessThanOrEqual, MoreThanOrEqual, Repository } from 'typeorm';
 import { RedisService } from '@vexa/core';
 import {
   CourierLocationEvent,
@@ -8,19 +8,30 @@ import {
   GeoPoint,
   JobStatus,
   MatchingDefaults,
+  Paginated,
   RedisChannels,
 } from '@vexa/shared';
+import { NotificationsService } from '../notifications/notifications.service';
 import { JobEntity } from '../jobs/job.entity';
 import { BonusEntity, BonusType } from './bonus.entity';
 import { CourierEntity } from './courier.entity';
 import { PayoutEntity, PayoutStatus } from './payout.entity';
 import {
   CreatePayoutDto,
+  PageDateQueryDto,
   RegisterCourierDto,
   SubmitVerificationDto,
   UpdateCourierLocationDto,
   UpdateVehicleDetailsDto,
 } from './dto';
+
+/** Aplica el rango [from, to] de un PageDateQueryDto a una columna de fecha dada. */
+function dateRangeWhere(query: PageDateQueryDto) {
+  if (query.from && query.to) return Between(new Date(query.from), new Date(query.to));
+  if (query.from) return MoreThanOrEqual(new Date(query.from));
+  if (query.to) return LessThanOrEqual(new Date(query.to));
+  return undefined;
+}
 
 @Injectable()
 export class CouriersService {
@@ -33,7 +44,8 @@ export class CouriersService {
     private readonly payouts: Repository<PayoutEntity>,
     @InjectRepository(BonusEntity)
     private readonly bonusesRepo: Repository<BonusEntity>,
-    private readonly redis: RedisService
+    private readonly redis: RedisService,
+    private readonly notifications: NotificationsService
   ) {}
 
   /** Puntos, nivel y multiplicador de pago del repartidor, derivados del historial. */
@@ -67,15 +79,11 @@ export class CouriersService {
     const { tier, multiplier } = await this.currentTier(courierId);
     const levelBonus = Math.round(price * multiplier) / 100;
     if (levelBonus > 0) {
+      const description = `Bono de nivel ${tier} (+${multiplier}%)`;
       await this.bonusesRepo.save(
-        this.bonusesRepo.create({
-          courierId,
-          jobId,
-          type: BonusType.LEVEL_MULTIPLIER,
-          amount: levelBonus,
-          description: `Bono de nivel ${tier} (+${multiplier}%)`,
-        }),
+        this.bonusesRepo.create({ courierId, jobId, type: BonusType.LEVEL_MULTIPLIER, amount: levelBonus, description }),
       );
+      await this.notifyBonus(courierId, levelBonus, description);
     }
 
     const weekStart = this.startOfWeek(new Date());
@@ -89,26 +97,50 @@ export class CouriersService {
         createdAt: MoreThanOrEqual(weekStart),
       });
       if (!alreadyCredited) {
+        const description = `Meta semanal: ${this.weeklyQuestTarget} entregas completadas`;
         await this.bonusesRepo.save(
-          this.bonusesRepo.create({
-            courierId,
-            type: BonusType.WEEKLY_QUEST,
-            amount: this.weeklyQuestBonus,
-            description: `Meta semanal: ${this.weeklyQuestTarget} entregas completadas`,
-          }),
+          this.bonusesRepo.create({ courierId, type: BonusType.WEEKLY_QUEST, amount: this.weeklyQuestBonus, description }),
         );
+        await this.notifyBonus(courierId, this.weeklyQuestBonus, description);
       }
     }
   }
 
+  private readonly copFormat = new Intl.NumberFormat('es-CO', {
+    style: 'currency',
+    currency: 'COP',
+    maximumFractionDigits: 0,
+  });
+
+  private async notifyBonus(courierId: string, amount: number, description: string) {
+    try {
+      await this.notifications.create({
+        scope: 'courier',
+        courierId,
+        icon: 'stars',
+        title: 'Ganaste un bono',
+        body: `${description} · ${this.copFormat.format(amount)}`,
+        referenceType: 'bonus',
+      });
+    } catch {
+      // Un fallo al notificar no debe afectar el bono ya acreditado.
+    }
+  }
+
   /** Historial de bonos del repartidor autenticado. */
-  async bonuses(userId: string) {
+  async bonuses(userId: string, query: PageDateQueryDto): Promise<Paginated<BonusEntity>> {
     const courier = await this.getByUserId(userId);
-    return this.bonusesRepo.find({
-      where: { courierId: courier.id },
+    const where: FindOptionsWhere<BonusEntity> = { courierId: courier.id };
+    const range = dateRangeWhere(query);
+    if (range) where.createdAt = range;
+
+    const [items, total] = await this.bonusesRepo.findAndCount({
+      where,
       order: { createdAt: 'DESC' },
-      take: 50,
+      skip: (query.page - 1) * query.pageSize,
+      take: query.pageSize,
     });
+    return { items, total, page: query.page, pageSize: query.pageSize };
   }
 
   async findAll() {
@@ -179,7 +211,20 @@ export class CouriersService {
     const count = courier.ratingsCount ?? 0;
     courier.rating = (Number(courier.rating) * count + score) / (count + 1);
     courier.ratingsCount = count + 1;
-    return this.repo.save(courier);
+    const saved = await this.repo.save(courier);
+    try {
+      await this.notifications.create({
+        scope: 'courier',
+        courierId,
+        icon: 'star',
+        title: 'Nueva calificación',
+        body: `Recibiste una calificación de ${score} estrella${score === 1 ? '' : 's'}.`,
+        referenceType: 'rating',
+      });
+    } catch {
+      // Un fallo al notificar no debe afectar la calificación ya aplicada.
+    }
+    return saved;
   }
 
   /** Resumen de ganancias del repartidor autenticado. */
@@ -246,21 +291,31 @@ export class CouriersService {
     return delivered.reduce((acc, j) => acc + Number(j.price ?? 0), 0);
   }
 
-  /** Historial financiero simple derivado de pedidos completados y retiros. */
-  async transactions(userId: string) {
+  /** Historial financiero simple derivado de pedidos completados, paginado y filtrable por fecha. */
+  async transactions(userId: string, query: PageDateQueryDto): Promise<Paginated<Record<string, unknown>>> {
     const courier = await this.getByUserId(userId);
-    const delivered = await this.jobs.find({
-      where: { courierId: courier.id, status: JobStatus.DELIVERED },
+    const where: FindOptionsWhere<JobEntity> = { courierId: courier.id, status: JobStatus.DELIVERED };
+    const range = dateRangeWhere(query);
+    if (range) where.completedAt = range;
+
+    const [delivered, total] = await this.jobs.findAndCount({
+      where,
       order: { completedAt: 'DESC' },
-      take: 50,
+      skip: (query.page - 1) * query.pageSize,
+      take: query.pageSize,
     });
-    return delivered.map((j) => ({
-      id: j.id,
-      title: `Pedido #VX-${j.id.slice(0, 6).toUpperCase()} · Ganancia`,
-      at: j.completedAt,
-      amount: Number(j.price),
-      status: 'Completado',
-    }));
+    return {
+      items: delivered.map((j) => ({
+        id: j.id,
+        title: `Pedido #VX-${j.id.slice(0, 6).toUpperCase()} · Ganancia`,
+        at: j.completedAt,
+        amount: Number(j.price),
+        status: 'Completado',
+      })),
+      total,
+      page: query.page,
+      pageSize: query.pageSize,
+    };
   }
 
   /** Estado de verificación del repartidor (null → pending). */
@@ -324,10 +379,32 @@ export class CouriersService {
     );
   }
 
-  listPayouts(userId: string) {
-    return this.getByUserId(userId).then((c) =>
-      this.payouts.find({ where: { courierId: c.id }, order: { createdAt: 'DESC' }, take: 50 }),
-    );
+  async listPayouts(userId: string, query: PageDateQueryDto): Promise<Paginated<PayoutEntity>> {
+    const courier = await this.getByUserId(userId);
+    const where: FindOptionsWhere<PayoutEntity> = { courierId: courier.id };
+    const range = dateRangeWhere(query);
+    if (range) where.createdAt = range;
+
+    const [items, total] = await this.payouts.findAndCount({
+      where,
+      order: { createdAt: 'DESC' },
+      skip: (query.page - 1) * query.pageSize,
+      take: query.pageSize,
+    });
+    return { items, total, page: query.page, pageSize: query.pageSize };
+  }
+
+  /** Bandeja de notificaciones del repartidor autenticado, paginada y filtrable por fecha. */
+  async notificationsFeed(userId: string, query: PageDateQueryDto) {
+    const courier = await this.getByUserId(userId);
+    return this.notifications.feed('courier', courier.id, query);
+  }
+
+  async markNotificationRead(userId: string, id: string) {
+    const courier = await this.getByUserId(userId);
+    const updated = await this.notifications.markReadFor('courier', courier.id, id);
+    if (!updated) throw new NotFoundException('Notificación no encontrada');
+    return updated;
   }
 
   /** Métricas de desempeño: puntualidad, aceptación, completado, rating. */
@@ -376,22 +453,36 @@ export class CouriersService {
   }
 
   /** Reseñas de pedidos con calificación para el repartidor. */
-  async reviews(courierId: string) {
-    const rows = await this.jobs.find({
-      where: { courierId, status: JobStatus.DELIVERED },
-      order: { completedAt: 'DESC' },
-      take: 50,
-      relations: { company: true },
-    });
-    return rows
-      .filter((j) => j.ratingScore != null)
-      .map((j) => ({
+  async reviews(courierId: string, query?: PageDateQueryDto): Promise<Paginated<Record<string, unknown>>> {
+    const page = query?.page ?? 1;
+    const pageSize = query?.pageSize ?? 50;
+    const qb = this.jobs
+      .createQueryBuilder('job')
+      .leftJoinAndSelect('job.company', 'company')
+      .where('job.courier_id = :courierId', { courierId })
+      .andWhere('job.status = :status', { status: JobStatus.DELIVERED })
+      .andWhere('job.rating_score IS NOT NULL');
+    if (query?.from) qb.andWhere('job.completed_at >= :from', { from: new Date(query.from) });
+    if (query?.to) qb.andWhere('job.completed_at <= :to', { to: new Date(query.to) });
+
+    const [rows, total] = await qb
+      .orderBy('job.completedAt', 'DESC')
+      .skip((page - 1) * pageSize)
+      .take(pageSize)
+      .getManyAndCount();
+
+    return {
+      items: rows.map((j) => ({
         id: `${courierId}-${j.id}`,
         author: j.company?.name ?? 'Empresa',
         when: j.completedAt,
         stars: j.ratingScore,
         text: j.ratingComment ?? 'Sin comentario',
-      }));
+      })),
+      total,
+      page,
+      pageSize,
+    };
   }
 
   /** Perfil público del repartidor. */
@@ -421,19 +512,29 @@ export class CouriersService {
   }
 
   /** Distribución y comentarios de reseñas del repartidor autenticado. */
-  async myReviews(userId: string) {
+  async myReviews(userId: string, query: PageDateQueryDto) {
     const courier = await this.getByUserId(userId);
-    const rows = await this.reviews(courier.id);
+    // Promedio y distribución se calculan sobre el histórico completo, no solo
+    // la página actual — igual que totalCount/totalSpend en jobs.history().
+    const allScored = await this.jobs.find({
+      where: { courierId: courier.id, status: JobStatus.DELIVERED },
+      select: ['ratingScore'],
+    });
+    const stars = allScored.map((j) => j.ratingScore).filter((s): s is number => s != null);
     const distribution = [0, 0, 0, 0, 0]; // 5★ -> 1★
-    for (const r of rows) {
-      const idx = 5 - (r.stars ?? 1);
+    for (const s of stars) {
+      const idx = 5 - s;
       if (idx >= 0 && idx < 5) distribution[idx]++;
     }
+    const paged = await this.reviews(courier.id, query);
     return {
-      average: rows.length ? rows.reduce((a, r) => a + (r.stars ?? 0), 0) / rows.length : 0,
-      total: rows.length,
+      average: stars.length ? stars.reduce((a, b) => a + b, 0) / stars.length : 0,
+      total: stars.length,
       distribution,
-      comments: rows.slice(0, 10),
+      comments: paged.items,
+      commentsTotal: paged.total,
+      page: paged.page,
+      pageSize: paged.pageSize,
     };
   }
 

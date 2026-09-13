@@ -8,7 +8,13 @@ import '../providers.dart';
 
 /// Chat 1:1 con la empresa asignada al pedido (REST + socket JOB_MESSAGE).
 class ChatPage extends ConsumerStatefulWidget {
-  const ChatPage({super.key, required this.jobId, this.peerName, this.subtitle});
+  const ChatPage({
+    super.key,
+    required this.jobId,
+    this.peerName,
+    this.subtitle,
+    this.peerIcon = Icons.business,
+  });
 
   final String jobId;
   final String? peerName;
@@ -16,6 +22,11 @@ class ChatPage extends ConsumerStatefulWidget {
   /// Texto bajo el nombre del contacto. Si es nulo, se arma a partir del
   /// [jobId] como referencia de pedido ("Entrega #XXXXXX").
   final String? subtitle;
+
+  /// Ícono del avatar del interlocutor. Por defecto asume que se está
+  /// chateando con la empresa (caso courier); la vista de company pasa
+  /// [Icons.person] porque su interlocutor es el repartidor.
+  final IconData peerIcon;
 
   @override
   ConsumerState<ChatPage> createState() => _ChatPageState();
@@ -46,10 +57,10 @@ class _ChatPageState extends ConsumerState<ChatPage> {
         titleSpacing: 0,
         title: Row(
           children: [
-            const CircleAvatar(
+            CircleAvatar(
               radius: 20,
               backgroundColor: VexaColors.primary100,
-              child: Icon(Icons.business, color: VexaColors.primary700, size: 20),
+              child: Icon(widget.peerIcon, color: VexaColors.primary700, size: 20),
             ),
             const SizedBox(width: 12),
             Expanded(

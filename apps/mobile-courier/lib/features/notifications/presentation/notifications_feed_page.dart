@@ -1,34 +1,45 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 
+import '../../../app/router.dart';
 import '../../../core/models/paged_result.dart';
-import '../../../core/network/api_client.dart';
 import '../../../core/theme/vexa_colors.dart';
-import '../../../core/widgets/company_app_bar.dart';
 import '../../../core/widgets/date_range_filter_bar.dart';
 import '../../../core/widgets/pagination_bar.dart';
-import '../domain/company_notification.dart';
-import '../providers.dart';
+import '../../profile/data/courier_repository.dart';
+import '../domain/notification_item.dart';
+import '../feed_providers.dart';
 
-/// Figma: notifications-screen — con filtro de rango de fecha y paginador.
-class NotificationsScreenPage extends ConsumerWidget {
-  const NotificationsScreenPage({super.key});
+/// Bandeja de notificaciones del repartidor — mismo patrón que la de
+/// company, con filtro de rango de fecha y paginador reales.
+class NotificationsFeedPage extends ConsumerWidget {
+  const NotificationsFeedPage({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final filter = ref.watch(companyNotificationsFilterProvider);
-    final notifications = ref.watch(companyNotificationsProvider(filter));
+    final filter = ref.watch(courierNotificationsFilterProvider);
+    final notifications = ref.watch(courierNotificationsProvider(filter));
 
     void updateFilter(PageDateFilter next) =>
-        ref.read(companyNotificationsFilterProvider.notifier).state = next;
+        ref.read(courierNotificationsFilterProvider.notifier).state = next;
 
     Future<void> markRead(String id) async {
-      await markCompanyNotificationRead(ref.read(apiClientProvider), id);
-      ref.invalidate(companyNotificationsProvider);
+      await ref.read(courierRepositoryProvider).markNotificationRead(id);
+      ref.invalidate(courierNotificationsProvider);
     }
 
     return Scaffold(
-      appBar: companyAppBar(context, 'Notificaciones'),
+      appBar: AppBar(
+        title: const Text('Notificaciones'),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.settings_outlined),
+            tooltip: 'Preferencias',
+            onPressed: () => context.push(AppRoutes.courierNotificationSettings),
+          ),
+        ],
+      ),
       body: notifications.when(
         loading: () => const Center(child: CircularProgressIndicator()),
         error: (_, __) => const Center(child: Text('No se pudieron cargar las notificaciones')),
@@ -46,7 +57,7 @@ class NotificationsScreenPage extends ConsumerWidget {
                         ),
                       )
                     : ListView(
-                        padding: const EdgeInsets.fromLTRB(24, 0, 24, 0),
+                        padding: const EdgeInsets.fromLTRB(20, 0, 20, 0),
                         children: [
                           for (final entry in groups.entries) ...[
                             Text(entry.key.toUpperCase(),
@@ -71,12 +82,16 @@ class NotificationsScreenPage extends ConsumerWidget {
     );
   }
 
-  Map<String, List<CompanyNotification>> _groupByDay(List<CompanyNotification> list) {
+  Map<String, List<NotificationItem>> _groupByDay(List<NotificationItem> list) {
     final now = DateTime.now();
-    final groups = <String, List<CompanyNotification>>{};
+    final groups = <String, List<NotificationItem>>{};
     for (final n in list) {
       final diff = now.difference(DateTime(n.when.year, n.when.month, n.when.day)).inDays;
-      final key = diff == 0 ? 'Hoy' : diff == 1 ? 'Ayer' : 'Anteriores';
+      final key = diff == 0
+          ? 'Hoy'
+          : diff == 1
+              ? 'Ayer'
+              : 'Anteriores';
       groups.putIfAbsent(key, () => []).add(n);
     }
     return groups;
@@ -86,7 +101,7 @@ class NotificationsScreenPage extends ConsumerWidget {
 class _NotificationRow extends StatelessWidget {
   const _NotificationRow({required this.n, this.onTap});
 
-  final CompanyNotification n;
+  final NotificationItem n;
   final VoidCallback? onTap;
 
   @override
@@ -101,44 +116,45 @@ class _NotificationRow extends StatelessWidget {
       onTap: onTap,
       borderRadius: BorderRadius.circular(VexaColors.radiusLg),
       child: Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: VexaColors.gray50,
-        border: Border.all(color: VexaColors.gray200),
-        borderRadius: BorderRadius.circular(VexaColors.radiusLg),
-      ),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Container(
-            padding: const EdgeInsets.all(8),
-            decoration: BoxDecoration(
-              color: n.unread ? VexaColors.success100 : VexaColors.gray200,
-              borderRadius: BorderRadius.circular(8),
-            ),
-            child: const Icon(Icons.notifications, size: 16, color: VexaColors.gray700),
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(n.title, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w700)),
-                const SizedBox(height: 2),
-                Text(n.body, style: const TextStyle(fontSize: 13, color: VexaColors.gray600)),
-                const SizedBox(height: 4),
-                Text(ago, style: const TextStyle(fontSize: 11, color: VexaColors.gray400)),
-              ],
-            ),
-          ),
-          if (n.unread)
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: VexaColors.gray50,
+          border: Border.all(color: VexaColors.gray200),
+          borderRadius: BorderRadius.circular(VexaColors.radiusLg),
+        ),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
             Container(
-              margin: const EdgeInsets.only(top: 4),
-              width: 8, height: 8,
-              decoration: const BoxDecoration(color: VexaColors.primary600, shape: BoxShape.circle),
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                color: n.unread ? VexaColors.success100 : VexaColors.gray200,
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: const Icon(Icons.notifications, size: 16, color: VexaColors.gray700),
             ),
-        ],
-      ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(n.title, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w700)),
+                  const SizedBox(height: 2),
+                  Text(n.body, style: const TextStyle(fontSize: 13, color: VexaColors.gray600)),
+                  const SizedBox(height: 4),
+                  Text(ago, style: const TextStyle(fontSize: 11, color: VexaColors.gray400)),
+                ],
+              ),
+            ),
+            if (n.unread)
+              Container(
+                margin: const EdgeInsets.only(top: 4),
+                width: 8,
+                height: 8,
+                decoration: const BoxDecoration(color: VexaColors.primary600, shape: BoxShape.circle),
+              ),
+          ],
+        ),
       ),
     );
   }

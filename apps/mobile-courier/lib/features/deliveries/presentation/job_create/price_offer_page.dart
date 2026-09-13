@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:intl/intl.dart';
 
 import '../../../../app/router.dart';
 import '../../../../core/theme/vexa_colors.dart';
+import '../../../../core/utils/formatters.dart';
 import '../../../../core/widgets/company_app_bar.dart';
 import '../../../../core/widgets/company_field.dart';
 import 'job_draft_controller.dart';
@@ -39,7 +39,7 @@ class _PriceOfferPageState extends ConsumerState<PriceOfferPage> {
   Widget build(BuildContext context) {
     final draft = ref.watch(jobDraftProvider);
     final estimate = draft.estimate;
-    final money = NumberFormat.currency(locale: 'es_CO', symbol: r'$', decimalDigits: 0).format;
+    final money = AppFormatters.money;
     final breakdown = estimate?['breakdown'] as Map<String, dynamic>?;
     final distanceKm = ((estimate?['distanceMeters'] as num?) ?? 0) / 1000;
     final durationMin = ((estimate?['durationSeconds'] as num?) ?? 0) / 60;

@@ -1,5 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../core/models/paged_result.dart';
 import '../../../core/network/api_client.dart';
 
 enum CourierStatus {
@@ -34,13 +35,12 @@ class CourierRepository {
     return response.data ?? const {};
   }
 
-  Future<List<Map<String, dynamic>>> fetchTransactions() async {
-    final response =
-        await _api.dio.get<List<dynamic>>('/couriers/me/transactions');
-    return (response.data ?? const [])
-        .whereType<Map>()
-        .map(Map<String, dynamic>.from)
-        .toList();
+  Future<Map<String, dynamic>> fetchTransactions(PageDateFilter filter) async {
+    final response = await _api.dio.get<Map<String, dynamic>>(
+      '/couriers/me/transactions',
+      queryParameters: filter.toQueryParams(),
+    );
+    return response.data ?? const {};
   }
 
   Future<Map<String, dynamic>> fetchVerification() async {
@@ -63,27 +63,40 @@ class CourierRepository {
   Future<void> requestPayout(double amount, String method) => _api.dio
       .post<dynamic>('/couriers/me/payouts', data: {'amount': amount, 'method': method});
 
-  Future<List<Map<String, dynamic>>> fetchPayouts() async {
-    final response = await _api.dio.get<List<dynamic>>('/couriers/me/payouts');
-    return (response.data ?? const [])
-        .whereType<Map>()
-        .map(Map<String, dynamic>.from)
-        .toList();
-  }
-
-  Future<List<Map<String, dynamic>>> fetchBonuses() async {
-    final response = await _api.dio.get<List<dynamic>>('/couriers/me/bonuses');
-    return (response.data ?? const [])
-        .whereType<Map>()
-        .map(Map<String, dynamic>.from)
-        .toList();
-  }
-
-  Future<Map<String, dynamic>> fetchMyReviews() async {
-    final response =
-        await _api.dio.get<Map<String, dynamic>>('/couriers/me/reviews');
+  Future<Map<String, dynamic>> fetchPayouts(PageDateFilter filter) async {
+    final response = await _api.dio.get<Map<String, dynamic>>(
+      '/couriers/me/payouts',
+      queryParameters: filter.toQueryParams(),
+    );
     return response.data ?? const {};
   }
+
+  Future<Map<String, dynamic>> fetchBonuses(PageDateFilter filter) async {
+    final response = await _api.dio.get<Map<String, dynamic>>(
+      '/couriers/me/bonuses',
+      queryParameters: filter.toQueryParams(),
+    );
+    return response.data ?? const {};
+  }
+
+  Future<Map<String, dynamic>> fetchMyReviews(PageDateFilter filter) async {
+    final response = await _api.dio.get<Map<String, dynamic>>(
+      '/couriers/me/reviews',
+      queryParameters: filter.toQueryParams(),
+    );
+    return response.data ?? const {};
+  }
+
+  Future<Map<String, dynamic>> fetchNotifications(PageDateFilter filter) async {
+    final response = await _api.dio.get<Map<String, dynamic>>(
+      '/couriers/me/notifications',
+      queryParameters: filter.toQueryParams(),
+    );
+    return response.data ?? const {};
+  }
+
+  Future<void> markNotificationRead(String id) =>
+      _api.dio.patch<dynamic>('/couriers/me/notifications/$id/read');
 
   Future<Map<String, dynamic>> fetchPerformance() async {
     final response =

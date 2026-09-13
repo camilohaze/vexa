@@ -1,23 +1,31 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:intl/intl.dart';
 
 import '../../../app/router.dart';
+import '../../../core/models/paged_result.dart';
 import '../../../core/theme/vexa_colors.dart';
+import '../../../core/utils/formatters.dart';
+import '../../../core/widgets/date_range_filter_bar.dart';
+import '../../../core/widgets/pagination_bar.dart';
 import '../../../core/widgets/vexa_bottom_nav.dart';
 import '../domain/wallet_models.dart';
 import '../providers.dart';
 
-/// Figma: company-wallet.
+/// Figma: company-wallet — transacciones con filtro de rango de fecha y
+/// paginador, ambos aplicados por el backend.
 class WalletPage extends ConsumerWidget {
   const WalletPage({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final wallet = ref.watch(companyWalletProvider);
-    final txs = ref.watch(companyTransactionsProvider);
-    final money = NumberFormat.currency(locale: 'es_CO', symbol: r'$', decimalDigits: 0).format;
+    final filter = ref.watch(companyTransactionsFilterProvider);
+    final txs = ref.watch(companyTransactionsProvider(filter));
+    final money = AppFormatters.money;
+
+    void updateFilter(PageDateFilter next) =>
+        ref.read(companyTransactionsFilterProvider.notifier).state = next;
 
     return Scaffold(
       appBar: AppBar(
@@ -89,15 +97,29 @@ class WalletPage extends ConsumerWidget {
               ),
             ]),
             const SizedBox(height: 24),
-            const Text('TRANSACCIONES RECIENTES',
+            const Text('TRANSACCIONES',
                 style: TextStyle(fontSize: 13, fontWeight: FontWeight.w800, color: VexaColors.gray800)),
-            const SizedBox(height: 12),
+            const SizedBox(height: 8),
+            DateRangeFilterBar(
+              filter: filter,
+              onChanged: updateFilter,
+              padding: const EdgeInsets.symmetric(vertical: 4),
+            ),
+            const SizedBox(height: 8),
             txs.when(
               loading: () => const Center(child: CircularProgressIndicator()),
               error: (_, __) => const Text('No se pudieron cargar los movimientos'),
-              data: (list) => list.isEmpty
-                  ? const Text('Sin movimientos aún', style: TextStyle(color: VexaColors.gray500))
-                  : Column(children: [for (final tx in list) _TxRow(tx: tx, money: money)]),
+              data: (page) => page.items.isEmpty
+                  ? Text(
+                      filter.hasDateRange ? 'Sin movimientos en este rango.' : 'Sin movimientos aún',
+                      style: const TextStyle(color: VexaColors.gray500),
+                    )
+                  : Column(
+                      children: [
+                        for (final tx in page.items) _TxRow(tx: tx, money: money),
+                        PaginationBar(result: page, onPageChanged: (p) => updateFilter(filter.copyWith(page: p))),
+                      ],
+                    ),
             ),
           ],
         ),
@@ -139,7 +161,7 @@ class _TxRow extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(tx.title, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600)),
-              Text('${DateFormat('d MMM', 'es').format(tx.at)} • TX-${tx.id.substring(0, tx.id.length.clamp(0, 6)).toUpperCase()}',
+              Text('${AppFormatters.shortDate(tx.at)} • TX-${tx.id.substring(0, tx.id.length.clamp(0, 6)).toUpperCase()}',
                   style: const TextStyle(fontSize: 12, color: VexaColors.gray400)),
             ],
           ),

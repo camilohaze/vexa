@@ -12,6 +12,7 @@ import '../features/auth/presentation/verify_page.dart';
 import '../features/auth/presentation/welcome_page.dart';
 import '../features/auth/providers.dart';
 import '../features/chat/presentation/chat_page.dart';
+import '../features/chat/presentation/company_chat_page.dart';
 import '../features/couriers/presentation/courier_profile_view_page.dart';
 import '../features/couriers/presentation/courier_rating_page.dart';
 import '../features/dashboard/presentation/company_dashboard_page.dart';
@@ -45,6 +46,7 @@ import '../features/jobs/presentation/job_detail_page.dart';
 import '../features/jobs/presentation/pickup_confirmation_page.dart';
 import '../features/jobs/presentation/proof_of_delivery_page.dart';
 import '../features/notifications/presentation/notification_settings_page.dart';
+import '../features/notifications/presentation/notifications_feed_page.dart';
 import '../features/profile/presentation/profile_page.dart';
 import '../features/rewards/presentation/refer_page.dart';
 import '../features/rewards/presentation/rewards_page.dart';
@@ -73,6 +75,7 @@ abstract final class AppRoutes {
   // --- Courier ---
   static const courierHome = '/courier/home';
   static const courierProfile = '/courier/profile';
+  static const courierNotifications = '/courier/notifications';
   static const courierNotificationSettings = '/courier/settings/notifications';
   static const courierHelp = '/courier/help';
   static const courierFaq = '/courier/help/faq';
@@ -305,6 +308,10 @@ final routerProvider = Provider<GoRouter>((ref) {
         builder: (context, state) => const ProfilePage(),
       ),
       GoRoute(
+        path: AppRoutes.courierNotifications,
+        builder: (context, state) => const NotificationsFeedPage(),
+      ),
+      GoRoute(
         path: AppRoutes.courierNotificationSettings,
         builder: (context, state) => const NotificationSettingsPage(),
       ),
@@ -373,7 +380,7 @@ final routerProvider = Provider<GoRouter>((ref) {
       ),
       GoRoute(
         path: '/company/jobs/:id/chat',
-        builder: (context, state) => ChatPage(jobId: state.pathParameters['id']!),
+        builder: (context, state) => CompanyChatPage(jobId: state.pathParameters['id']!),
       ),
       GoRoute(
         path: '/company/jobs/:id/rate',

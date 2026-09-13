@@ -126,7 +126,7 @@ class ProfilePage extends ConsumerWidget {
           MenuItemTile(Icons.history, 'Historial de entregas',
               () => context.push(AppRoutes.courierHistory)),
           MenuItemTile(Icons.notifications_outlined, 'Notificaciones',
-              () => context.push(AppRoutes.courierNotificationSettings)),
+              () => context.push(AppRoutes.courierNotifications)),
           MenuItemTile(Icons.emoji_events_outlined, 'Recompensas',
               () => context.push(AppRoutes.courierRewards)),
           MenuItemTile(Icons.card_giftcard, 'Invita y gana',

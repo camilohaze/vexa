@@ -5,6 +5,7 @@ import { ApiRoutes, UserRole } from '@vexa/shared';
 import { CouriersService } from './couriers.service';
 import {
   CreatePayoutDto,
+  PageDateQueryDto,
   RegisterCourierDto,
   SubmitVerificationDto,
   UpdateCourierLocationDto,
@@ -45,8 +46,8 @@ export class CouriersController {
 
   @Get('me/transactions')
   @Roles(UserRole.COURIER)
-  transactions(@CurrentUser('id') userId: string) {
-    return this.couriers.transactions(userId);
+  transactions(@CurrentUser('id') userId: string, @Query() query: PageDateQueryDto) {
+    return this.couriers.transactions(userId, query);
   }
 
   @Get('me/verification')
@@ -75,8 +76,8 @@ export class CouriersController {
 
   @Get('me/payouts')
   @Roles(UserRole.COURIER)
-  payouts(@CurrentUser('id') userId: string) {
-    return this.couriers.listPayouts(userId);
+  payouts(@CurrentUser('id') userId: string, @Query() query: PageDateQueryDto) {
+    return this.couriers.listPayouts(userId, query);
   }
 
   @Get('me/payout-methods')
@@ -87,8 +88,20 @@ export class CouriersController {
 
   @Get('me/bonuses')
   @Roles(UserRole.COURIER)
-  bonuses(@CurrentUser('id') userId: string) {
-    return this.couriers.bonuses(userId);
+  bonuses(@CurrentUser('id') userId: string, @Query() query: PageDateQueryDto) {
+    return this.couriers.bonuses(userId, query);
+  }
+
+  @Get('me/notifications')
+  @Roles(UserRole.COURIER)
+  notifications(@CurrentUser('id') userId: string, @Query() query: PageDateQueryDto) {
+    return this.couriers.notificationsFeed(userId, query);
+  }
+
+  @Patch('me/notifications/:id/read')
+  @Roles(UserRole.COURIER)
+  markNotificationRead(@CurrentUser('id') userId: string, @Param('id', ParseUUIDPipe) id: string) {
+    return this.couriers.markNotificationRead(userId, id);
   }
 
   @Post('me/payouts')
@@ -127,8 +140,8 @@ export class CouriersController {
 
   @Get('me/reviews')
   @Roles(UserRole.COURIER)
-  myReviews(@CurrentUser('id') userId: string) {
-    return this.couriers.myReviews(userId);
+  myReviews(@CurrentUser('id') userId: string, @Query() query: PageDateQueryDto) {
+    return this.couriers.myReviews(userId, query);
   }
 
   @Get('me/rewards')

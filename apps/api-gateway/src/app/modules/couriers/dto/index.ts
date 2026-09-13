@@ -1,6 +1,44 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { ArrayNotEmpty, IsArray, IsEnum, IsIn, IsLatitude, IsLongitude, IsNumber, IsOptional, IsString } from 'class-validator';
+import { Type } from 'class-transformer';
+import {
+  ArrayNotEmpty,
+  IsArray,
+  IsEnum,
+  IsIn,
+  IsISO8601,
+  IsLatitude,
+  IsLongitude,
+  IsNumber,
+  IsOptional,
+  IsPositive,
+  IsString,
+} from 'class-validator';
 import { CourierStatus, VehicleType } from '@vexa/shared';
+
+/** Rango de fecha + paginación, reutilizado por billetera/notificaciones/reseñas del repartidor. */
+export class PageDateQueryDto {
+  @ApiPropertyOptional({ example: '2026-08-01' })
+  @IsOptional()
+  @IsISO8601()
+  from?: string;
+
+  @ApiPropertyOptional({ example: '2026-08-31' })
+  @IsOptional()
+  @IsISO8601()
+  to?: string;
+
+  @ApiPropertyOptional({ default: 1 })
+  @IsOptional()
+  @Type(() => Number)
+  @IsPositive()
+  page = 1;
+
+  @ApiPropertyOptional({ default: 20 })
+  @IsOptional()
+  @Type(() => Number)
+  @IsPositive()
+  pageSize = 20;
+}
 
 export const VERIFICATION_TYPES = ['identity', 'vehicle', 'insurance', 'background'] as const;
 export type VerificationType = (typeof VERIFICATION_TYPES)[number];

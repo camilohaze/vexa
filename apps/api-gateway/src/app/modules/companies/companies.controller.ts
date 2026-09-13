@@ -1,10 +1,11 @@
-import { Body, Controller, Delete, Get, Param, ParseUUIDPipe, Patch, Post, Put } from '@nestjs/common';
+import { Body, Controller, Delete, Get, Param, ParseUUIDPipe, Patch, Post, Put, Query } from '@nestjs/common';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import { AuthenticatedUser, CurrentUser, Roles } from '@vexa/auth';
 import { ApiRoutes, UserRole } from '@vexa/shared';
 import { CompaniesService } from './companies.service';
 import { CreateCompanyDto } from './dto/create-company.dto';
 import { CreatePaymentMethodDto } from './dto/payment-method.dto';
+import { PageDateQueryDto } from './dto/page-date-query.dto';
 import { UpdateCompanySettingsDto } from './dto/company-settings.dto';
 import { UpdateFcmTokenDto } from './dto/fcm-token.dto';
 
@@ -34,8 +35,14 @@ export class CompaniesController {
 
   @Get('me/notifications')
   @Roles(UserRole.COMPANY)
-  notifications(@CurrentUser() user: AuthenticatedUser) {
-    return this.companies.notifications(user);
+  notifications(@CurrentUser() user: AuthenticatedUser, @Query() query: PageDateQueryDto) {
+    return this.companies.notifications(user, query);
+  }
+
+  @Patch('me/notifications/:id/read')
+  @Roles(UserRole.COMPANY)
+  markNotificationRead(@CurrentUser() user: AuthenticatedUser, @Param('id', ParseUUIDPipe) id: string) {
+    return this.companies.markNotificationRead(user, id);
   }
 
   @Get('me/payment-methods')
@@ -64,14 +71,14 @@ export class CompaniesController {
 
   @Get('me/transactions')
   @Roles(UserRole.COMPANY)
-  transactions(@CurrentUser() user: AuthenticatedUser) {
-    return this.companies.transactions(user);
+  transactions(@CurrentUser() user: AuthenticatedUser, @Query() query: PageDateQueryDto) {
+    return this.companies.transactions(user, query);
   }
 
   @Get('me/invoices')
   @Roles(UserRole.COMPANY)
-  invoices(@CurrentUser() user: AuthenticatedUser) {
-    return this.companies.invoices(user);
+  invoices(@CurrentUser() user: AuthenticatedUser, @Query() query: PageDateQueryDto) {
+    return this.companies.invoices(user, query);
   }
 
   @Get('me/settings')

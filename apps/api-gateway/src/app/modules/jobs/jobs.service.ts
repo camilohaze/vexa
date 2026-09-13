@@ -5,7 +5,7 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { DataSource, FindOptionsWhere, IsNull, Repository } from 'typeorm';
+import { Between, DataSource, FindOptionsWhere, IsNull, LessThanOrEqual, MoreThanOrEqual, Repository } from 'typeorm';
 import { AuthenticatedUser } from '@vexa/auth';
 import { RedisService } from '@vexa/core';
 import {
@@ -22,6 +22,7 @@ import {
 } from '@vexa/shared';
 import { CompaniesService } from '../companies/companies.service';
 import { CouriersService } from '../couriers/couriers.service';
+import { NotificationsService } from '../notifications/notifications.service';
 import {
   CancelJobDto,
   CompleteJobDto,
@@ -60,8 +61,25 @@ export class JobsService {
     private readonly companies: CompaniesService,
     private readonly couriers: CouriersService,
     private readonly redis: RedisService,
-    private readonly directions: DirectionsService
+    private readonly directions: DirectionsService,
+    private readonly notifications: NotificationsService
   ) {}
+
+  private async notifyCompany(companyId: string, icon: string, title: string, body: string, jobId: string) {
+    try {
+      await this.notifications.create({
+        scope: 'company',
+        companyId,
+        icon,
+        title,
+        body,
+        referenceId: jobId,
+        referenceType: 'job',
+      });
+    } catch {
+      // Un fallo al notificar no debe afectar el flujo del pedido.
+    }
+  }
 
   async create(dto: CreateJobDto, user: AuthenticatedUser) {
     const company = await this.companies.getForUser(user);
@@ -94,6 +112,9 @@ export class JobsService {
   async list(query: ListJobsQueryDto, user: AuthenticatedUser): Promise<Paginated<JobEntity>> {
     const where: FindOptionsWhere<JobEntity> = {};
     if (query.status) where.status = query.status;
+    if (query.from && query.to) where.createdAt = Between(new Date(query.from), new Date(query.to));
+    else if (query.from) where.createdAt = MoreThanOrEqual(new Date(query.from));
+    else if (query.to) where.createdAt = LessThanOrEqual(new Date(query.to));
     if (user.role === UserRole.COMPANY) where.companyId = (await this.companies.getForUser(user)).id;
     if (user.role === UserRole.COURIER) {
       const courier = await this.couriers.getByUserId(user.id);
@@ -171,7 +192,7 @@ export class JobsService {
 
   async accept(id: string, user: AuthenticatedUser) {
     const courier = await this.couriers.getByUserId(user.id);
-    return this.dataSource.transaction(async (manager) => {
+    const saved = await this.dataSource.transaction(async (manager) => {
       const job = await manager.findOne(JobEntity, { where: { id }, lock: { mode: 'pessimistic_write' } });
       if (!job) throw new NotFoundException(`Job ${id} not found`);
       if (job.courierId) throw new BadRequestException('Job already taken');
@@ -179,15 +200,22 @@ export class JobsService {
       job.courierId = courier.id;
       job.status = JobStatus.ACCEPTED;
       job.acceptedAt = new Date();
-      const saved = await manager.save(job);
-      const event: JobAcceptedEvent = {
-        jobId: saved.id,
-        courierId: courier.id,
-        acceptedAt: saved.acceptedAt!.toISOString(),
-      };
-      await this.redis.publish(RedisChannels.JOB_ACCEPTED, event);
-      return saved;
+      return manager.save(job);
     });
+    const event: JobAcceptedEvent = {
+      jobId: saved.id,
+      courierId: courier.id,
+      acceptedAt: saved.acceptedAt!.toISOString(),
+    };
+    await this.redis.publish(RedisChannels.JOB_ACCEPTED, event);
+    await this.notifyCompany(
+      saved.companyId,
+      'local_shipping',
+      'Repartidor asignado',
+      `Un repartidor aceptó tu envío #VX-${saved.id.slice(0, 6).toUpperCase()}.`,
+      saved.id,
+    );
+    return saved;
   }
 
   async advance(id: string, status: JobStatus.PICKED_UP | JobStatus.IN_TRANSIT, user: AuthenticatedUser) {
@@ -220,6 +248,13 @@ export class JobsService {
     } catch {
       // noop
     }
+    await this.notifyCompany(
+      saved.companyId,
+      'check_circle',
+      'Entrega completada',
+      `Tu envío #VX-${saved.id.slice(0, 6).toUpperCase()} fue entregado exitosamente.`,
+      saved.id,
+    );
     return saved;
   }
 

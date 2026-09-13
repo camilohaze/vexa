@@ -1,5 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../core/models/paged_result.dart';
 import '../../../core/network/api_client.dart';
 import '../domain/wallet_models.dart';
 
@@ -13,14 +14,20 @@ class CompanyWalletRepository {
     return CompanyWallet.fromJson(response.data ?? const {});
   }
 
-  Future<List<WalletTransaction>> transactions() async {
-    final response = await _api.dio.get<dynamic>('/companies/me/transactions');
-    return _list(response.data).map(WalletTransaction.fromJson).toList();
+  Future<PagedResult<WalletTransaction>> transactions(PageDateFilter filter) async {
+    final response = await _api.dio.get<Map<String, dynamic>>(
+      '/companies/me/transactions',
+      queryParameters: filter.toQueryParams(),
+    );
+    return PagedResult.fromJson(response.data ?? const {}, WalletTransaction.fromJson);
   }
 
-  Future<List<Invoice>> invoices() async {
-    final response = await _api.dio.get<dynamic>('/companies/me/invoices');
-    return _list(response.data).map(Invoice.fromJson).toList();
+  Future<PagedResult<Invoice>> invoices(PageDateFilter filter) async {
+    final response = await _api.dio.get<Map<String, dynamic>>(
+      '/companies/me/invoices',
+      queryParameters: filter.toQueryParams(),
+    );
+    return PagedResult.fromJson(response.data ?? const {}, Invoice.fromJson);
   }
 
   Future<List<PaymentMethod>> paymentMethods() async {

@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../core/theme/vexa_colors.dart';
+import '../../../core/utils/formatters.dart';
 import '../data/support_repository.dart';
 
 final legalProvider = FutureProvider<List<Map<String, dynamic>>>((ref) async {
@@ -56,7 +57,7 @@ class LegalPage extends ConsumerWidget {
               data: (_) => ListView(
                 padding: const EdgeInsets.all(20),
                 children: [
-                  Text(updatedAt ?? 'VIGENTE: ${DateTime.now().toLocal()}',
+                  Text(updatedAt ?? 'VIGENTE: ${AppFormatters.date(DateTime.now())}',
                       style: const TextStyle(
                           fontSize: 11, letterSpacing: 0.6,
                           color: VexaColors.gray400, fontWeight: FontWeight.w600)),

@@ -1,20 +1,24 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:intl/intl.dart';
 
+import '../../../core/models/paged_result.dart';
 import '../../../core/theme/vexa_colors.dart';
+import '../../../core/utils/formatters.dart';
+import '../../../core/widgets/date_range_filter_bar.dart';
 import '../../profile/data/courier_repository.dart';
 
-final _myReviewsProvider = FutureProvider<Map<String, dynamic>>((ref) async {
+final _reviewsFilterProvider = StateProvider.autoDispose<PageDateFilter>((ref) => const PageDateFilter());
+
+final _myReviewsProvider = FutureProvider.autoDispose.family<Map<String, dynamic>, PageDateFilter>((ref, filter) async {
   try {
-    return await ref.watch(courierRepositoryProvider).fetchMyReviews();
+    return await ref.watch(courierRepositoryProvider).fetchMyReviews(filter);
   } catch (_) {
     return const {};
   }
 });
 
-/// Figma: courier-ratings — rating promedio, distribución por estrellas
-/// y comentarios recientes (GET /couriers/me/reviews).
+/// Figma: courier-ratings — rating promedio y distribución (histórico
+/// completo), comentarios filtrables por fecha y paginados por el backend.
 class RatingsPage extends ConsumerWidget {
   const RatingsPage({super.key});
 
@@ -29,11 +33,18 @@ class RatingsPage extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final theme = Theme.of(context);
-    final reviews = ref.watch(_myReviewsProvider).valueOrNull ?? const {};
+    final filter = ref.watch(_reviewsFilterProvider);
+    final reviews = ref.watch(_myReviewsProvider(filter)).valueOrNull ?? const {};
     final average = (reviews['average'] as num?)?.toDouble() ?? 0;
     final total = (reviews['total'] as num?)?.toInt() ?? 0;
     final distribution = (reviews['distribution'] as List?)?.cast<int>() ?? [0, 0, 0, 0, 0];
     final comments = (reviews['comments'] as List?)?.cast<Map>() ?? const [];
+    final commentsTotal = (reviews['commentsTotal'] as num?)?.toInt() ?? comments.length;
+    final page = (reviews['page'] as num?)?.toInt() ?? 1;
+    final pageSize = (reviews['pageSize'] as num?)?.toInt() ?? 20;
+    final commentsPage = PagedResult(items: comments, total: commentsTotal, page: page, pageSize: pageSize);
+
+    void updateFilter(PageDateFilter next) => ref.read(_reviewsFilterProvider.notifier).state = next;
 
     return Scaffold(
       appBar: AppBar(title: const Text('Calificaciones')),
@@ -97,17 +108,59 @@ class RatingsPage extends ConsumerWidget {
               ),
             ],
           ),
-          const SizedBox(height: 28),
-          Text('COMENTARIOS RECIENTES',
+          const SizedBox(height: 20),
+          DateRangeFilterBar(filter: filter, onChanged: updateFilter, padding: EdgeInsets.zero),
+          const SizedBox(height: 12),
+          Text('COMENTARIOS',
               style: theme.textTheme.labelSmall?.copyWith(
                   letterSpacing: 0.6, color: VexaColors.gray500)),
           const SizedBox(height: 8),
-          for (final c in comments)
-            _CommentCard(
-              name: c['author'] as String? ?? 'Empresa',
-              date: _format(c['when'] as String?),
-              text: c['text'] as String? ?? '',
-              stars: (c['stars'] as num?)?.toInt() ?? 5,
+          if (comments.isEmpty)
+            Padding(
+              padding: const EdgeInsets.symmetric(vertical: 16),
+              child: Text(
+                filter.hasDateRange ? 'Sin comentarios en este rango.' : 'Aún no tienes comentarios.',
+                style: const TextStyle(fontSize: 13, color: VexaColors.gray500),
+              ),
+            )
+          else
+            for (final c in comments)
+              _CommentCard(
+                name: c['author'] as String? ?? 'Empresa',
+                date: _format(c['when'] as String?),
+                text: c['text'] as String? ?? '',
+                stars: (c['stars'] as num?)?.toInt() ?? 5,
+              ),
+          if (commentsTotal > pageSize)
+            Padding(
+              padding: const EdgeInsets.only(top: 8),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text('Mostrando ${comments.length} de $commentsTotal',
+                      style: const TextStyle(fontSize: 12, color: VexaColors.gray500)),
+                  Row(
+                    children: [
+                      IconButton(
+                        onPressed: commentsPage.hasPreviousPage
+                            ? () => updateFilter(filter.copyWith(page: page - 1))
+                            : null,
+                        icon: const Icon(Icons.chevron_left),
+                        iconSize: 20,
+                        visualDensity: VisualDensity.compact,
+                      ),
+                      IconButton(
+                        onPressed: commentsPage.hasNextPage
+                            ? () => updateFilter(filter.copyWith(page: page + 1))
+                            : null,
+                        icon: const Icon(Icons.chevron_right),
+                        iconSize: 20,
+                        visualDensity: VisualDensity.compact,
+                      ),
+                    ],
+                  ),
+                ],
+              ),
             ),
         ],
       ),
@@ -118,7 +171,7 @@ class RatingsPage extends ConsumerWidget {
     if (iso == null) return '';
     final d = DateTime.tryParse(iso);
     if (d == null) return '';
-    return DateFormat('d MMM', 'es_CO').format(d);
+    return AppFormatters.shortDate(d);
   }
 }
 

@@ -1,5 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../core/models/paged_result.dart';
 import 'data/jobs_repository.dart';
 import 'domain/job.dart';
 
@@ -62,10 +63,22 @@ final newJobStreamProvider = StreamProvider<Job>(
   (ref) => ref.watch(jobsRepositoryProvider).newJobs,
 );
 
-/// Historial del repartidor (pedidos propios completados).
-final myJobsProvider = FutureProvider<List<Job>>((ref) async {
-  final jobs = await ref.watch(jobsRepositoryProvider).fetchMine();
-  return jobs.where((j) => j.status.isFinished).toList();
+/// Filtro (rango de fecha + página) del historial del repartidor.
+final courierHistoryFilterProvider =
+    StateProvider.autoDispose<PageDateFilter>((ref) => const PageDateFilter());
+
+/// Historial del repartidor (pedidos propios entregados), paginado y
+/// filtrable por fecha.
+final courierHistoryProvider =
+    FutureProvider.autoDispose.family<PagedResult<Job>, PageDateFilter>((ref, filter) async {
+  final data = await ref.watch(jobsRepositoryProvider).fetchJobs(
+        status: JobStatus.delivered.value,
+        from: filter.from,
+        to: filter.to,
+        page: filter.page,
+        pageSize: filter.pageSize,
+      );
+  return PagedResult.fromJson(data, Job.fromJson);
 });
 
 class JobDetailNotifier extends FamilyAsyncNotifier<Job, String> {

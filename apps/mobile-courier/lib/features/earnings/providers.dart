@@ -1,6 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 
+import '../../core/models/paged_result.dart';
 import '../../core/utils/json_parse.dart';
 import '../profile/data/courier_repository.dart';
 
@@ -95,26 +96,6 @@ final earningsSummaryProvider = FutureProvider<EarningsSummary>((ref) async {
   }
 });
 
-final walletTransactionsProvider =
-    FutureProvider<List<WalletTransaction>>((ref) async {
-  try {
-    final items =
-        await ref.watch(courierRepositoryProvider).fetchTransactions();
-    return items
-        .map(
-          (tx) => WalletTransaction(
-            title: tx['title'] as String? ?? 'Movimiento',
-            subtitle: _formatDate(tx['at'] as String?),
-            amount: (tx['amount'] as num?)?.toDouble() ?? 0,
-            status: tx['status'] as String? ?? '',
-          ),
-        )
-        .toList();
-  } catch (_) {
-    return const [];
-  }
-});
-
 String _formatDate(String? iso) {
   final date = iso == null ? null : DateTime.tryParse(iso);
   return date == null ? '' : DateFormat('d MMM, HH:mm', 'es').format(date);
@@ -138,40 +119,68 @@ const _bonusTypeLabels = {
   'WEEKLY_QUEST': 'Meta semanal',
 };
 
-final bonusesProvider = FutureProvider<List<WalletTransaction>>((ref) async {
+/// Estado de filtro (rango de fecha + página) por pestaña de la billetera.
+final walletFilterProvider = StateProvider.autoDispose.family<PageDateFilter, int>(
+  (ref, tab) => const PageDateFilter(),
+);
+
+final walletTransactionsProvider =
+    FutureProvider.autoDispose.family<PagedResult<WalletTransaction>, PageDateFilter>((ref, filter) async {
   try {
-    final items = await ref.watch(courierRepositoryProvider).fetchBonuses();
-    return items
-        .map(
-          (b) => WalletTransaction(
-            title: b['description'] as String? ?? 'Bono',
-            subtitle: _formatDate(b['createdAt'] as String?),
-            amount: asDouble(b['amount']),
-            status: _bonusTypeLabels[b['type']] ?? 'Acreditado',
-          ),
-        )
-        .toList();
+    final data = await ref.watch(courierRepositoryProvider).fetchTransactions(filter);
+    return PagedResult.fromJson(
+      data,
+      (tx) => WalletTransaction(
+        title: tx['title'] as String? ?? 'Movimiento',
+        subtitle: _formatDate(tx['at'] as String?),
+        amount: asDouble(tx['amount']),
+        status: tx['status'] as String? ?? '',
+      ),
+    );
   } catch (_) {
-    return const [];
+    return PagedResult.empty();
   }
 });
 
-final payoutsProvider = FutureProvider<List<WalletTransaction>>((ref) async {
+final bonusesProvider =
+    FutureProvider.autoDispose.family<PagedResult<WalletTransaction>, PageDateFilter>((ref, filter) async {
   try {
-    final items = await ref.watch(courierRepositoryProvider).fetchPayouts();
-    return items
-        .map(
-          (p) => WalletTransaction(
-            title: _payoutMethodLabels[p['method']] ??
-                p['method'] as String? ??
-                'Retiro',
-            subtitle: _formatDate(p['createdAt'] as String?),
-            amount: -asDouble(p['amount']),
-            status: _payoutStatusLabels[p['status']] ?? p['status'] as String? ?? '',
-          ),
-        )
-        .toList();
+    final data = await ref.watch(courierRepositoryProvider).fetchBonuses(filter);
+    return PagedResult.fromJson(
+      data,
+      (b) => WalletTransaction(
+        title: b['description'] as String? ?? 'Bono',
+        subtitle: _formatDate(b['createdAt'] as String?),
+        amount: asDouble(b['amount']),
+        status: _bonusTypeLabels[b['type']] ?? 'Acreditado',
+      ),
+    );
   } catch (_) {
-    return const [];
+    return PagedResult.empty();
   }
+});
+
+final payoutsProvider =
+    FutureProvider.autoDispose.family<PagedResult<WalletTransaction>, PageDateFilter>((ref, filter) async {
+  try {
+    final data = await ref.watch(courierRepositoryProvider).fetchPayouts(filter);
+    return PagedResult.fromJson(
+      data,
+      (p) => WalletTransaction(
+        title: _payoutMethodLabels[p['method']] ?? p['method'] as String? ?? 'Retiro',
+        subtitle: _formatDate(p['createdAt'] as String?),
+        amount: -asDouble(p['amount']),
+        status: _payoutStatusLabels[p['status']] ?? p['status'] as String? ?? '',
+      ),
+    );
+  } catch (_) {
+    return PagedResult.empty();
+  }
+});
+
+/// Última transacción para el resumen del dashboard (siempre la página 1,
+/// sin filtro de fecha).
+final lastTransactionProvider = Provider.autoDispose<WalletTransaction?>((ref) {
+  final result = ref.watch(walletTransactionsProvider(const PageDateFilter(pageSize: 1))).valueOrNull;
+  return result?.items.firstOrNull;
 });

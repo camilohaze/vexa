@@ -1,50 +1,79 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:intl/intl.dart';
 
 import '../../../app/router.dart';
+import '../../../core/models/paged_result.dart';
 import '../../../core/theme/vexa_colors.dart';
+import '../../../core/utils/formatters.dart';
 import '../../../core/widgets/company_app_bar.dart';
+import '../../../core/widgets/date_range_filter_bar.dart';
+import '../../../core/widgets/pagination_bar.dart';
 import '../../jobs/domain/job.dart';
 import '../providers.dart';
 
-/// Figma: delivery-history.
+/// Figma: delivery-history — filtro de rango de fecha y paginador, ambos
+/// aplicados por el backend (no solo la página actual).
 class DeliveryHistoryPage extends ConsumerWidget {
   const DeliveryHistoryPage({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final history = ref.watch(companyHistoryProvider);
-    final money = NumberFormat.currency(locale: 'es_CO', symbol: r'$', decimalDigits: 0).format;
-    final date = DateFormat('d MMM, y', 'es');
+    final filter = ref.watch(companyHistoryFilterProvider);
+    final history = ref.watch(companyHistoryProvider(filter));
+    final money = AppFormatters.money;
+    final date = AppFormatters.date;
+
+    void updateFilter(PageDateFilter next) =>
+        ref.read(companyHistoryFilterProvider.notifier).state = next;
 
     return Scaffold(
       appBar: companyAppBar(context, 'Historial de envíos'),
       body: history.when(
         loading: () => const Center(child: CircularProgressIndicator()),
         error: (_, __) => const Center(child: Text('No se pudo cargar el historial')),
-        data: (result) => RefreshIndicator(
-          onRefresh: () async => ref.invalidate(companyHistoryProvider),
-          child: ListView(
-            padding: const EdgeInsets.all(24),
-            children: [
-              if (result.items.isEmpty)
-                const Padding(
-                  padding: EdgeInsets.only(top: 40),
-                  child: Center(child: Text('Aún no hay envíos entregados', style: TextStyle(color: VexaColors.gray500))),
-                )
-              else
-                for (final job in result.items)
-                  Padding(
-                    padding: const EdgeInsets.only(bottom: 12),
-                    child: _HistoryCard(
-                      job: job, money: money, date: date,
-                      onTap: () => context.push(AppRoutes.companyJob(job.id)),
-                    ),
-                  ),
-            ],
-          ),
+        data: (result) => Column(
+          children: [
+            DateRangeFilterBar(filter: filter, onChanged: updateFilter),
+            Expanded(
+              child: RefreshIndicator(
+                onRefresh: () async => ref.invalidate(companyHistoryProvider),
+                child: ListView(
+                  padding: const EdgeInsets.fromLTRB(24, 8, 24, 0),
+                  children: [
+                    if (result.page.items.isEmpty)
+                      Padding(
+                        padding: const EdgeInsets.only(top: 40),
+                        child: Center(
+                          child: Text(
+                            filter.hasDateRange ? 'Sin envíos entregados en este rango.' : 'Aún no hay envíos entregados',
+                            style: const TextStyle(color: VexaColors.gray500),
+                          ),
+                        ),
+                      )
+                    else
+                      for (final job in result.page.items)
+                        Padding(
+                          padding: const EdgeInsets.only(bottom: 12),
+                          child: _HistoryCard(
+                            job: job, money: money, date: date,
+                            onTap: () => context.push(AppRoutes.companyJob(job.id)),
+                          ),
+                        ),
+                  ],
+                ),
+              ),
+            ),
+            PaginationBar(
+              result: PagedResult(
+                items: result.page.items,
+                total: result.page.total,
+                page: result.page.page,
+                pageSize: result.page.pageSize,
+              ),
+              onPageChanged: (p) => updateFilter(filter.copyWith(page: p)),
+            ),
+          ],
         ),
       ),
     );
@@ -56,7 +85,7 @@ class _HistoryCard extends StatelessWidget {
 
   final Job job;
   final String Function(num) money;
-  final DateFormat date;
+  final String Function(DateTime) date;
   final VoidCallback onTap;
 
   @override
@@ -80,7 +109,7 @@ class _HistoryCard extends StatelessWidget {
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Text('${date.format(job.createdAt)} • VX-${job.id.substring(0, 6).toUpperCase()}',
+                  Text('${date(job.createdAt)} • VX-${job.id.substring(0, 6).toUpperCase()}',
                       style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: VexaColors.gray400)),
                   Container(
                     padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),

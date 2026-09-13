@@ -4,12 +4,13 @@ import { Repository } from 'typeorm';
 import { AuthenticatedUser } from '@vexa/auth';
 import { PaymentStatus, UserRole } from '@vexa/shared';
 import { JobEntity } from '../jobs/job.entity';
-import { NotificationEntity } from '../notifications/notification.entity';
+import { NotificationsService } from '../notifications/notifications.service';
 import { PaymentEntity } from '../payments/payment.entity';
 import { CompanyEntity } from './company.entity';
 import { CompanySettingsEntity } from './company-settings.entity';
 import { CreateCompanyDto } from './dto/create-company.dto';
 import { CreatePaymentMethodDto } from './dto/payment-method.dto';
+import { PageDateQueryDto } from './dto/page-date-query.dto';
 import { UpdateCompanySettingsDto } from './dto/company-settings.dto';
 import { PaymentMethodEntity } from './payment-method.entity';
 
@@ -24,10 +25,9 @@ export class CompaniesService {
     private readonly payments: Repository<PaymentEntity>,
     @InjectRepository(PaymentMethodEntity)
     private readonly paymentMethodsRepo: Repository<PaymentMethodEntity>,
-    @InjectRepository(NotificationEntity)
-    private readonly notificationRepo: Repository<NotificationEntity>,
     @InjectRepository(CompanySettingsEntity)
-    private readonly settingsRepo: Repository<CompanySettingsEntity>
+    private readonly settingsRepo: Repository<CompanySettingsEntity>,
+    private readonly notificationsService: NotificationsService
   ) {}
 
   findAll() {
@@ -107,66 +107,96 @@ export class CompaniesService {
     return { removed: result.affected === 1 };
   }
 
-  /** Notificaciones reales del feed de la empresa. */
-  async notifications(user: AuthenticatedUser) {
+  /** Notificaciones reales del feed de la empresa, paginadas y filtrables por fecha. */
+  async notifications(user: AuthenticatedUser, query: PageDateQueryDto) {
     const company = await this.getForUser(user);
-    const rows = await this.notificationRepo.find({
-      where: { scope: 'company', companyId: company.id },
-      order: { createdAt: 'DESC' },
-      take: 50,
-    });
-    return rows.map((n) => ({
-      id: n.id,
-      icon: n.icon,
-      title: n.title,
-      body: n.body,
-      when: n.createdAt,
-      unread: !n.isRead,
-    }));
+    const paged = await this.notificationsService.feed('company', company.id, query);
+    return {
+      items: paged.items.map((n) => ({
+        id: n.id,
+        icon: n.icon,
+        title: n.title,
+        body: n.body,
+        when: n.createdAt,
+        unread: !n.isRead,
+      })),
+      total: paged.total,
+      page: paged.page,
+      pageSize: paged.pageSize,
+    };
   }
 
-  /** Movimientos de la billetera: pagos por pedido + reembolsos. */
-  async transactions(user: AuthenticatedUser) {
+  async markNotificationRead(user: AuthenticatedUser, id: string) {
     const company = await this.getForUser(user);
-    const rows = await this.payments
+    const updated = await this.notificationsService.markReadFor('company', company.id, id);
+    if (!updated) throw new NotFoundException('Notificación no encontrada');
+    return updated;
+  }
+
+  /** Movimientos de la billetera: pagos por pedido + reembolsos, paginados y filtrables por fecha. */
+  async transactions(user: AuthenticatedUser, query: PageDateQueryDto) {
+    const company = await this.getForUser(user);
+    const qb = this.payments
       .createQueryBuilder('p')
       .innerJoin(JobEntity, 'j', 'j.id = p.job_id')
+      .where('j.company_id = :id', { id: company.id });
+    if (query.from) qb.andWhere('p.created_at >= :from', { from: new Date(query.from) });
+    if (query.to) qb.andWhere('p.created_at <= :to', { to: new Date(query.to) });
+
+    const total = await qb.clone().getCount();
+    const rows = await qb
+      .clone()
       .select('p.id', 'id')
       .addSelect('p.reference', 'reference')
       .addSelect('p.amount', 'amount')
       .addSelect('p.status', 'status')
       .addSelect('p.created_at', 'at')
       .addSelect('j.id', 'jobId')
-      .where('j.company_id = :id', { id: company.id })
       .orderBy('p.created_at', 'DESC')
-      .limit(50)
+      .offset((query.page - 1) * query.pageSize)
+      .limit(query.pageSize)
       .getRawMany<{ id: string; reference: string; amount: string; status: PaymentStatus; at: Date; jobId: string }>();
-    return rows.map((r) => ({
-      id: r.id,
-      title:
-        r.status === PaymentStatus.REFUNDED
-          ? `Reembolso VX-${r.jobId.slice(0, 6).toUpperCase()}`
-          : `Débito envío VX-${r.jobId.slice(0, 6).toUpperCase()}`,
-      at: r.at,
-      amount: r.status === PaymentStatus.REFUNDED ? Number(r.amount) : -Number(r.amount),
-      status: r.status,
-    }));
+    return {
+      items: rows.map((r) => ({
+        id: r.id,
+        title:
+          r.status === PaymentStatus.REFUNDED
+            ? `Reembolso VX-${r.jobId.slice(0, 6).toUpperCase()}`
+            : `Débito envío VX-${r.jobId.slice(0, 6).toUpperCase()}`,
+        at: r.at,
+        amount: r.status === PaymentStatus.REFUNDED ? Number(r.amount) : -Number(r.amount),
+        status: r.status,
+      })),
+      total,
+      page: query.page,
+      pageSize: query.pageSize,
+    };
   }
 
-  /** Facturas mensuales agregadas a partir de pagos aprobados. */
-  async invoices(user: AuthenticatedUser) {
+  /** Facturas mensuales agregadas a partir de pagos aprobados, paginadas y filtrables por fecha. */
+  async invoices(user: AuthenticatedUser, query: PageDateQueryDto) {
     const company = await this.getForUser(user);
-    return this.payments
+    const qb = this.payments
       .createQueryBuilder('p')
       .innerJoin(JobEntity, 'j', 'j.id = p.job_id')
+      .where('j.company_id = :id', { id: company.id })
+      .andWhere('p.status = :st', { st: PaymentStatus.APPROVED });
+    if (query.from) qb.andWhere('p.created_at >= :from', { from: new Date(query.from) });
+    if (query.to) qb.andWhere('p.created_at <= :to', { to: new Date(query.to) });
+
+    const grouped = qb
       .select("to_char(date_trunc('month', p.created_at), 'YYYY-MM')", 'period')
       .addSelect('COUNT(*)', 'count')
       .addSelect('SUM(p.amount)', 'total')
-      .where('j.company_id = :id', { id: company.id })
-      .andWhere('p.status = :st', { st: PaymentStatus.APPROVED })
       .groupBy("date_trunc('month', p.created_at)")
-      .orderBy("date_trunc('month', p.created_at)", 'DESC')
+      .orderBy("date_trunc('month', p.created_at)", 'DESC');
+
+    const total = (await grouped.clone().getRawMany()).length;
+    const items = await grouped
+      .offset((query.page - 1) * query.pageSize)
+      .limit(query.pageSize)
       .getRawMany();
+    return { items, total, page: query.page, pageSize: query.pageSize };
   }
 
   async updateFcmToken(user: AuthenticatedUser, fcmToken: string) {

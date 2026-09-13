@@ -8,6 +8,7 @@ import { PaymentProvider, PaymentStatus } from '@vexa/shared';
 import { CompaniesService } from '../companies/companies.service';
 import { JobEntity } from '../jobs/job.entity';
 import { JobsService } from '../jobs/jobs.service';
+import { NotificationsService as InAppNotificationsService } from '../notifications/notifications.service';
 import { CreatePaymentDto } from './dto';
 import { PaymentEntity } from './payment.entity';
 
@@ -19,7 +20,8 @@ export class PaymentsService {
     private readonly gateway: PaymentGatewayService,
     private readonly companies: CompaniesService,
     private readonly jobs: JobsService,
-    private readonly notifications: NotificationsService
+    private readonly notifications: NotificationsService,
+    private readonly inAppNotifications: InAppNotificationsService
   ) {}
 
   findAll() {
@@ -83,6 +85,12 @@ export class PaymentsService {
     return saved;
   }
 
+  private readonly copFormat = new Intl.NumberFormat('es-CO', {
+    style: 'currency',
+    currency: 'COP',
+    maximumFractionDigits: 0,
+  });
+
   private async notifyPayer(payment: PaymentEntity) {
     const job = await this.repo.manager.findOne(JobEntity, {
       where: { id: payment.jobId },
@@ -95,6 +103,21 @@ export class PaymentsService {
         payment.currency,
         payment.jobId
       );
+    }
+    if (job) {
+      try {
+        await this.inAppNotifications.create({
+          scope: 'company',
+          companyId: job.companyId,
+          icon: 'payments',
+          title: 'Pago aprobado',
+          body: `Tu pago de ${this.copFormat.format(Number(payment.amount))} por el envío #VX-${job.id.slice(0, 6).toUpperCase()} fue aprobado.`,
+          referenceId: job.id,
+          referenceType: 'payment',
+        });
+      } catch {
+        // Un fallo al notificar no debe afectar el estado del pago.
+      }
     }
   }
 }

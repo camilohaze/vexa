@@ -1,11 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:intl/intl.dart';
 
 import '../../../app/router.dart';
 import '../../../core/navigation/external_navigation.dart';
 import '../../../core/theme/vexa_colors.dart';
+import '../../../core/utils/formatters.dart';
 import '../domain/job.dart';
 import '../../tracking/providers.dart';
 import '../providers.dart';
@@ -37,11 +37,7 @@ class _JobDetail extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final theme = Theme.of(context);
-    final price = NumberFormat.currency(
-      locale: 'es_CO',
-      symbol: r'$',
-      decimalDigits: 0,
-    ).format(job.price);
+    final price = AppFormatters.money(job.price);
     final refCode = 'VX-${job.id.substring(0, job.id.length.clamp(0, 6)).toUpperCase()}';
     final label = job.status == JobStatus.offered ? 'Oferta' : 'Pedido';
 

@@ -1,8 +1,15 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
-import { UserRole } from '@vexa/shared';
+import { Between, FindOptionsWhere, LessThanOrEqual, MoreThanOrEqual, Repository } from 'typeorm';
+import { Paginated, UserRole } from '@vexa/shared';
 import { NotificationEntity, NotificationScope } from './notification.entity';
+
+export interface NotificationFeedQuery {
+  from?: string;
+  to?: string;
+  page?: number;
+  pageSize?: number;
+}
 
 export interface NotificationInput {
   scope: NotificationScope;
@@ -41,6 +48,39 @@ export class NotificationsService {
       order: { createdAt: 'DESC' },
       take: limit,
     });
+  }
+
+  /** Bandeja paginada y filtrable por fecha, para company o courier. */
+  async feed(
+    scope: 'company' | 'courier',
+    ownerId: string,
+    query: NotificationFeedQuery = {},
+  ): Promise<Paginated<NotificationEntity>> {
+    const page = query.page ?? 1;
+    const pageSize = query.pageSize ?? 20;
+    const where: FindOptionsWhere<NotificationEntity> =
+      scope === 'company' ? { scope: 'company', companyId: ownerId } : { scope: 'courier', courierId: ownerId };
+    if (query.from && query.to) where.createdAt = Between(new Date(query.from), new Date(query.to));
+    else if (query.from) where.createdAt = MoreThanOrEqual(new Date(query.from));
+    else if (query.to) where.createdAt = LessThanOrEqual(new Date(query.to));
+
+    const [items, total] = await this.repo.findAndCount({
+      where,
+      order: { createdAt: 'DESC' },
+      skip: (page - 1) * pageSize,
+      take: pageSize,
+    });
+    return { items, total, page, pageSize };
+  }
+
+  /** Marca como leída, verificando que pertenezca al dueño indicado. */
+  async markReadFor(scope: 'company' | 'courier', ownerId: string, id: string) {
+    const ownerMatch =
+      scope === 'company' ? { scope: 'company' as const, companyId: ownerId } : { scope: 'courier' as const, courierId: ownerId };
+    const existing = await this.repo.findOne({ where: { id, ...ownerMatch } });
+    if (!existing) return null;
+    existing.isRead = true;
+    return this.repo.save(existing);
   }
 
   findForAdmin(limit = 50) {

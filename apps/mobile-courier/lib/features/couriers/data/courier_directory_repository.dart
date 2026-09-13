@@ -16,10 +16,10 @@ class CourierDirectoryRepository {
   }
 
   Future<List<CourierReview>> reviews(String courierId) async {
-    final response = await _api.dio.get<dynamic>('/couriers/$courierId/reviews');
-    final raw = response.data;
-    if (raw is! List) return const [];
-    return raw.whereType<Map>().map((m) => CourierReview.fromJson(Map<String, dynamic>.from(m))).toList();
+    final response = await _api.dio.get<Map<String, dynamic>>('/couriers/$courierId/reviews');
+    final items = response.data?['items'];
+    if (items is! List) return const [];
+    return items.whereType<Map>().map((m) => CourierReview.fromJson(Map<String, dynamic>.from(m))).toList();
   }
 }
 

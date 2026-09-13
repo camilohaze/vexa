@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:intl/intl.dart';
 
 import '../../../app/router.dart';
 import '../../../core/theme/vexa_colors.dart';
+import '../../../core/utils/formatters.dart';
 import '../../../core/widgets/company_app_bar.dart';
 import '../../jobs/domain/job.dart';
 import '../providers.dart';
@@ -18,8 +18,8 @@ class CompanyJobDetailPage extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final job = ref.watch(companyJobDetailProvider(jobId));
-    final money = NumberFormat.currency(locale: 'es_CO', symbol: r'$', decimalDigits: 0).format;
-    final date = DateFormat('d MMM, y • h:mm a', 'es');
+    final money = AppFormatters.money;
+    final date = AppFormatters.dateTime;
     final loadedId = job.valueOrNull?.id;
 
     return Scaffold(
@@ -216,7 +216,7 @@ class _TimelineStep extends StatelessWidget {
 
   final String label;
   final DateTime? at;
-  final DateFormat format;
+  final String Function(DateTime) format;
   final bool done;
   final bool current;
 
@@ -235,7 +235,7 @@ class _TimelineStep extends StatelessWidget {
               children: [
                 Text(label, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w700)),
                 if (at != null)
-                  Text(format.format(at!), style: const TextStyle(fontSize: 11, color: VexaColors.gray400)),
+                  Text(format(at!), style: const TextStyle(fontSize: 11, color: VexaColors.gray400)),
               ],
             ),
           ),

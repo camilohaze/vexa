@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:intl/intl.dart';
 
 import '../../../app/router.dart';
 import '../../../core/theme/vexa_colors.dart';
+import '../../../core/utils/formatters.dart';
 import '../../../core/widgets/vexa_bottom_nav.dart';
 import '../../auth/providers.dart';
 import '../../earnings/providers.dart';
@@ -24,12 +24,11 @@ class DashboardPage extends ConsumerWidget {
     final status = ref.watch(courierStatusProvider);
     final jobs = ref.watch(offeredJobsProvider);
     final earnings = ref.watch(earningsSummaryProvider);
-    final txs = ref.watch(walletTransactionsProvider);
+    final lastTx = ref.watch(lastTransactionProvider);
     final online = status.valueOrNull == CourierStatus.available;
     final theme = Theme.of(context);
     final today = earnings.valueOrNull?.today ?? 0;
     final completed = earnings.valueOrNull?.completed ?? 0;
-    final lastTx = txs.valueOrNull?.firstOrNull;
 
     ref.listen<AsyncValue<dynamic>>(newJobStreamProvider, (prev, next) {
       next.whenData((job) {
@@ -108,7 +107,7 @@ class DashboardPage extends ConsumerWidget {
                     Row(
                       crossAxisAlignment: CrossAxisAlignment.end,
                       children: [
-                        Text('\$${today.toStringAsFixed(2)}',
+                        Text(AppFormatters.money(today),
                             style: theme.textTheme.displaySmall?.copyWith(
                                 color: Colors.white,
                                 fontWeight: FontWeight.w700)),
@@ -193,7 +192,7 @@ class DashboardPage extends ConsumerWidget {
                   icon: Icons.check_circle,
                   title: lastTx.title,
                   subtitle:
-                      '${lastTx.subtitle} • ${NumberFormat.currency(locale: 'es_CO', symbol: r'$', decimalDigits: 0).format(lastTx.amount)}',
+                      '${lastTx.subtitle} • ${AppFormatters.money(lastTx.amount)}',
                 )
               else
                 const _ActivityItem(

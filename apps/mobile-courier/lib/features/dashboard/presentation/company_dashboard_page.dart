@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:intl/intl.dart';
 
 import '../../../app/router.dart';
 import '../../../core/theme/vexa_colors.dart';
+import '../../../core/utils/formatters.dart';
 import '../../../core/widgets/vexa_bottom_nav.dart';
 import '../../auth/providers.dart';
 import '../../deliveries/providers.dart';
@@ -19,7 +19,7 @@ class CompanyDashboardPage extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final user = ref.watch(currentUserProvider);
     final profile = ref.watch(companyProfileProvider).valueOrNull;
-    final jobs = ref.watch(companyJobsProvider).valueOrNull ?? const <Job>[];
+    final jobs = ref.watch(companyJobsProvider).valueOrNull?.items ?? const <Job>[];
     final active = jobs.where((j) => !j.status.isFinished).length;
     final completed = jobs.where((j) => j.status == JobStatus.delivered).length;
     final pending = jobs.where((j) => j.status == JobStatus.pending).length;
@@ -200,7 +200,7 @@ class _ActivityItem extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final money = NumberFormat.currency(locale: 'es_CO', symbol: r'$', decimalDigits: 0).format;
+    final money = AppFormatters.money;
     final done = job.status == JobStatus.delivered;
     return Card(
       margin: const EdgeInsets.only(bottom: 8),

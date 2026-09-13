@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 
 import '../../../../app/router.dart';
 import '../../../../core/theme/vexa_colors.dart';
+import '../../../../core/utils/formatters.dart';
 import '../../../../core/widgets/company_app_bar.dart';
 import '../../../../core/widgets/company_field.dart';
 import 'job_draft_controller.dart';
@@ -133,8 +134,7 @@ class _DeliveryDetailsFormPageState extends ConsumerState<DeliveryDetailsFormPag
                   label: 'Fecha y hora preferida de recogida',
                   hint: _pickupAt == null
                       ? 'Selecciona fecha y hora'
-                      : '${_pickupAt!.day}/${_pickupAt!.month}/${_pickupAt!.year} · '
-                          '${_pickupAt!.hour.toString().padLeft(2, '0')}:${_pickupAt!.minute.toString().padLeft(2, '0')}',
+                      : AppFormatters.dateTime(_pickupAt!),
                   icon: Icons.calendar_today_outlined,
                   readOnly: true,
                   onTap: _pickDateTime,

@@ -35,8 +35,27 @@ class JobsRepository {
     return _parseList(response.data);
   }
 
+  /// Lista paginada y filtrable por fecha de los pedidos del usuario
+  /// autenticado (courier: sus propios pedidos; company: los de su cuenta).
+  Future<Map<String, dynamic>> fetchJobs({
+    String? status,
+    DateTime? from,
+    DateTime? to,
+    int page = 1,
+    int pageSize = 20,
+  }) async {
+    final response = await _api.dio.get<Map<String, dynamic>>('/jobs', queryParameters: {
+      if (status != null) 'status': status,
+      if (from != null) 'from': from.toIso8601String(),
+      if (to != null) 'to': to.toIso8601String(),
+      'page': page,
+      'pageSize': pageSize,
+    });
+    return response.data ?? const {};
+  }
+
   Future<List<Job>> fetchMine() async {
-    final response = await _api.dio.get<dynamic>('/jobs');
+    final response = await _api.dio.get<dynamic>('/jobs', queryParameters: {'pageSize': 20});
     return _parseList(response.data);
   }
 
@@ -136,17 +155,29 @@ class JobsRepository {
     return response.data ?? const {};
   }
 
-  /// Historial de envíos entregados (rol COMPANY), con estadísticas agregadas.
-  Future<({List<Job> items, int totalCount, double totalSpend})> history({
+  /// Historial de envíos entregados (rol COMPANY), con estadísticas agregadas
+  /// sobre todo el rango filtrado (no solo la página actual).
+  Future<({List<Job> items, int total, int page, int pageSize, int totalCount, double totalSpend})> history({
     String? search,
+    DateTime? from,
+    DateTime? to,
+    int page = 1,
+    int pageSize = 20,
   }) async {
     final response = await _api.dio.get<Map<String, dynamic>>('/jobs/history', queryParameters: {
       if (search != null && search.isNotEmpty) 'search': search,
+      if (from != null) 'from': from.toIso8601String(),
+      if (to != null) 'to': to.toIso8601String(),
+      'page': page,
+      'pageSize': pageSize,
     });
     final data = response.data ?? const {};
     final stats = data['stats'] is Map ? Map<String, dynamic>.from(data['stats']) : const {};
     return (
       items: _parseList(data['items']),
+      total: asInt(data['total']),
+      page: asInt(data['page'], 1),
+      pageSize: asInt(data['pageSize'], pageSize),
       totalCount: asInt(stats['totalCount']),
       totalSpend: asDouble(stats['totalSpend']),
     );

@@ -4,6 +4,7 @@ import { NotificationsModule } from '@vexa/notifications';
 import { PaymentsModule as PaymentsLibModule } from '@vexa/payments';
 import { CompaniesModule } from '../companies/companies.module';
 import { JobsModule } from '../jobs/jobs.module';
+import { NotificationsModule as InAppNotificationsModule } from '../notifications/notifications.module';
 import { PaymentEntity } from './payment.entity';
 import { PaymentsController } from './payments.controller';
 import { PaymentsService } from './payments.service';
@@ -13,6 +14,7 @@ import { PaymentsService } from './payments.service';
     TypeOrmModule.forFeature([PaymentEntity]),
     PaymentsLibModule,
     NotificationsModule,
+    InAppNotificationsModule,
     CompaniesModule,
     JobsModule,
   ],

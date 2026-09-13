@@ -35,7 +35,7 @@ class CompanyJobsListPage extends ConsumerWidget {
         loading: () => const Center(child: CircularProgressIndicator()),
         error: (_, __) => const Center(child: Text('No se pudieron cargar los envíos')),
         data: (all) {
-          final active = all.where((j) => !j.status.isFinished).toList();
+          final active = all.items.where((j) => !j.status.isFinished).toList();
           final filtered = switch (filter) {
             _Filter.all => active,
             _Filter.inTransit =>

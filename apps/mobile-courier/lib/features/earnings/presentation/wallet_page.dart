@@ -1,13 +1,17 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:intl/intl.dart';
 
 import '../../../app/router.dart';
+import '../../../core/models/paged_result.dart';
 import '../../../core/theme/vexa_colors.dart';
+import '../../../core/utils/formatters.dart';
+import '../../../core/widgets/date_range_filter_bar.dart';
+import '../../../core/widgets/pagination_bar.dart';
 import '../providers.dart';
 
-/// Figma: courier-wallet — tarjeta azul de saldo, tabs y transacciones.
+/// Figma: courier-wallet — tarjeta azul de saldo, tabs y transacciones,
+/// cada una con su propio filtro de fecha y paginador.
 class WalletPage extends ConsumerStatefulWidget {
   const WalletPage({super.key});
 
@@ -26,22 +30,23 @@ class _WalletPageState extends ConsumerState<WalletPage> {
           today: 0, completed: 0,
           dailyBars: [0, 0, 0, 0, 0, 0, 0], breakdown: [],
         );
-    final earnings = ref.watch(walletTransactionsProvider).valueOrNull ?? const <WalletTransaction>[];
-    final payouts = ref.watch(payoutsProvider).valueOrNull ?? const <WalletTransaction>[];
-    final bonuses = ref.watch(bonusesProvider).valueOrNull ?? const <WalletTransaction>[];
-    final txs = switch (_tab) {
-      1 => payouts,
-      2 => bonuses,
-      _ => earnings,
+    final filter = ref.watch(walletFilterProvider(_tab));
+    final result = switch (_tab) {
+      1 => ref.watch(payoutsProvider(filter)),
+      2 => ref.watch(bonusesProvider(filter)),
+      _ => ref.watch(walletTransactionsProvider(filter)),
     };
+    final page = result.valueOrNull ?? PagedResult<WalletTransaction>.empty();
     final theme = Theme.of(context);
-    final money = NumberFormat.currency(
-        locale: 'es_CO', symbol: r'$', decimalDigits: 2).format;
+    final money = AppFormatters.money;
+
+    void updateFilter(PageDateFilter next) =>
+        ref.read(walletFilterProvider(_tab).notifier).state = next;
 
     return Scaffold(
       appBar: AppBar(title: const Text('Billetera')),
       body: ListView(
-        padding: const EdgeInsets.all(20),
+        padding: const EdgeInsets.fromLTRB(20, 20, 20, 0),
         children: [
           Container(
             padding: const EdgeInsets.all(20),
@@ -112,25 +117,27 @@ class _WalletPageState extends ConsumerState<WalletPage> {
             onSelectionChanged: (s) => setState(() => _tab = s.first),
             showSelectedIcon: false,
           ),
-          const SizedBox(height: 16),
-          Text('Transacciones recientes',
+          const SizedBox(height: 12),
+          DateRangeFilterBar(filter: filter, onChanged: updateFilter),
+          const SizedBox(height: 4),
+          Text('Transacciones',
               style: theme.textTheme.titleSmall
                   ?.copyWith(fontWeight: FontWeight.w700)),
           const SizedBox(height: 8),
-          if (txs.isEmpty)
+          if (page.items.isEmpty)
             Padding(
               padding: const EdgeInsets.symmetric(vertical: 24),
               child: Center(
                 child: Text(
-                  _tab == 2
+                  _tab == 2 && !filter.hasDateRange
                       ? 'Aún no tienes bonos. Vexa los mostrará aquí cuando se activen.'
-                      : 'Sin movimientos por ahora.',
+                      : 'Sin movimientos en este rango.',
                   textAlign: TextAlign.center,
                   style: const TextStyle(fontSize: 13, color: VexaColors.gray500),
                 ),
               ),
             ),
-          for (final tx in txs)
+          for (final tx in page.items)
             Card(
               margin: const EdgeInsets.only(bottom: 8),
               child: ListTile(
@@ -172,6 +179,7 @@ class _WalletPageState extends ConsumerState<WalletPage> {
                 ),
               ),
             ),
+          PaginationBar(result: page, onPageChanged: (p) => updateFilter(filter.copyWith(page: p))),
         ],
       ),
     );
